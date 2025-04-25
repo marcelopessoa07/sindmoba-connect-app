@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,33 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
+      // Use the appropriate identifier based on login type
       const identifier = loginType === 'email' ? email : cpf;
+      
+      console.log(`Attempting login with: ${identifier} and password`);
+      
+      // For CPF login, we need to find the user's email first
+      let emailToUse = identifier;
+      
+      if (loginType === 'cpf') {
+        // Get the email associated with this CPF
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('cpf', identifier.replace(/\D/g, ''))
+          .single();
+          
+        if (profileError || !profileData?.email) {
+          throw new Error('CPF não encontrado no sistema');
+        }
+        
+        emailToUse = profileData.email;
+        console.log(`Found email ${emailToUse} for CPF ${identifier}`);
+      }
+      
+      // Now sign in with the email
       const { error } = await supabase.auth.signInWithPassword({
-        email: identifier,
+        email: emailToUse,
         password,
       });
 
@@ -33,9 +58,10 @@ const LoginForm = () => {
       });
       navigate('/main');
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Erro ao fazer login",
-        description: error.message,
+        description: error.message || "Verifique suas credenciais e tente novamente",
         variant: "destructive",
       });
     } finally {
