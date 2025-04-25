@@ -29,7 +29,15 @@ import AdminNewsPage from "./pages/admin/AdminNewsPage";
 import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
 import AdminFAQPage from "./pages/admin/AdminFAQPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

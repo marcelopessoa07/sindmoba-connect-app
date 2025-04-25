@@ -1,20 +1,29 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SplashScreen = () => {
   const navigate = useNavigate();
   const [fadeOut, setFadeOut] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Navigate to main page after 2.5 seconds
+    // Safely navigate after splash screen
     const timer = setTimeout(() => {
       setFadeOut(true);
-      setTimeout(() => navigate('/main'), 500);
+      setTimeout(() => {
+        // Navigate to login if no user, otherwise to main
+        if (user) {
+          navigate('/main');
+        } else {
+          navigate('/login');
+        }
+      }, 500);
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, user]);
 
   return (
     <div 

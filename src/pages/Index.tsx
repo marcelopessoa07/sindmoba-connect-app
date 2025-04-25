@@ -1,13 +1,17 @@
 
-import { BrowserRouter } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/layout/SplashScreen';
 
 const Index = () => {
-  return (
-    <BrowserRouter>
-      <SplashScreen />
-    </BrowserRouter>
-  );
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // We'll handle navigation in SplashScreen component 
+    // to avoid routing conflicts
+  }, [navigate]);
+
+  return <SplashScreen />;
 };
 
 export default Index;
