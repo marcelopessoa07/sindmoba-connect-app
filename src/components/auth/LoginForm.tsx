@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -158,10 +158,12 @@ const LoginForm = () => {
   return (
     <div className="mx-auto w-full max-w-md p-6">
       <div className="mb-6 flex justify-center">
-        <div className="h-24 w-24 rounded-full bg-sindmoba-primary p-3">
-          <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-3xl font-bold text-sindmoba-primary">
-            SM
-          </div>
+        <div className="h-24 w-24">
+          <img 
+            src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+            alt="SINDMOBA Logo" 
+            className="w-full h-full object-contain"
+          />
         </div>
       </div>
       
