@@ -1,17 +1,12 @@
+
 import { NavLink } from 'react-router-dom';
 import { Calendar, File, Book, List, Mail, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MainMenuProps {
   closeMenu: () => void;
-}
-
-interface MenuItem {
-  title: string;
-  path: string;
-  icon: React.ElementType;
 }
 
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
@@ -21,20 +16,21 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   useEffect(() => {
     const checkAdminRole = async () => {
       if (user) {
-        const { data: profile } = await supabase
+        // Verificar se o usuário tem role 'admin'
+        const { data } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
 
-        setIsAdmin(profile?.role === 'admin');
+        setIsAdmin(data?.role === 'admin');
       }
     };
 
     checkAdminRole();
   }, [user]);
   
-  const menuItems: MenuItem[] = [
+  const menuItems = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },

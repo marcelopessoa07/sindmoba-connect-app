@@ -16,13 +16,13 @@ const AdminPage = () => {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (profile?.role !== 'admin') {
+      if (data?.role !== 'admin') {
         navigate('/main');
       }
     };
