@@ -1,4 +1,3 @@
-
 import { NavLink } from 'react-router-dom';
 import { 
   Calendar, 
@@ -19,49 +18,22 @@ interface MainMenuProps {
 }
 
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
-  const { user, signOut } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, profile, signOut } = useAuth();
   const [profileData, setProfileData] = useState({
     full_name: '',
     specialty: '',
   });
   
   useEffect(() => {
-    const checkAdminRole = async () => {
-      if (user) {
-        try {
-          // Verificar se o usuário tem role 'admin'
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching profile:', error);
-            return;
-          }
-
-          // Check if role exists and is admin
-          setIsAdmin(data && 'role' in data && data.role === 'admin');
-          
-          // Set profile data for display
-          if (data) {
-            setProfileData({
-              full_name: data.full_name || data.email?.split('@')[0] || 'Usuário',
-              specialty: data.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
-                        data.specialty === 'pol' ? 'POL - Perito Odonto Legal' : 
-                        'Associado',
-            });
-          }
-        } catch (error) {
-          console.error('Error checking admin role:', error);
-        }
-      }
-    };
-
-    checkAdminRole();
-  }, [user]);
+    if (profile) {
+      setProfileData({
+        full_name: profile.full_name || profile.email?.split('@')[0] || 'Usuário',
+        specialty: profile.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
+                  profile.specialty === 'pol' ? 'POL - Perito Odonto Legal' : 
+                  'Associado',
+      });
+    }
+  }, [profile]);
   
   const menuItems = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
@@ -106,7 +78,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       </div>
       
       <div className="divide-y">
-        {isAdmin && (
+        {profile?.role === 'admin' && (
           <NavLink
             to="/admin"
             className={({ isActive }) =>
