@@ -44,11 +44,12 @@ const SplashScreen = () => {
       className={`flex h-screen w-full flex-col items-center justify-center bg-sindmoba-primary transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
     >
       <div className="flex flex-col items-center">
-        {/* Placeholder for Logo - You'll need to add a real logo */}
-        <div className="mb-6 h-40 w-40 rounded-full bg-white p-4 shadow-lg">
-          <div className="flex h-full w-full items-center justify-center rounded-full bg-sindmoba-light text-5xl font-bold text-sindmoba-primary">
-            SM
-          </div>
+        <div className="mb-6 w-96 h-auto">
+          <img 
+            src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+            alt="SINDMOBA Logo" 
+            className="w-full h-full object-contain"
+          />
         </div>
         
         <h1 className="mb-3 text-center text-2xl font-bold text-white">
