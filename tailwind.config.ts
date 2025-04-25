@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				sindmoba: {
+					primary: '#0056b3',    // Deep blue
+					secondary: '#2980b9',  // Medium blue
+					accent: '#3498db',     // Light blue
+					light: '#ebf5fb',      // Very light blue
+					dark: '#1a365d',       // Dark blue
+					success: '#27ae60',    // Green
+					warning: '#f39c12',    // Orange
+					danger: '#e74c3c',     // Red
 				}
 			},
 			borderRadius: {
@@ -84,11 +95,25 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'fade-in': {
+					"0%": {
+						opacity: "0"
+					},
+					"100%": {
+						opacity: "1"
+					}
+				},
+				'pulse-gentle': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.8' },
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out',
+				'pulse-gentle': 'pulse-gentle 3s infinite',
 			}
 		}
 	},
