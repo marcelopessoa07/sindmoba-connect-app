@@ -7,7 +7,8 @@ import {
   List, 
   Mail, 
   Users, 
-  User
+  User,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -47,7 +48,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
           // Set profile data for display
           if (data) {
             setProfileData({
-              full_name: data.full_name || 'Usuário',
+              full_name: data.full_name || data.email?.split('@')[0] || 'Usuário',
               specialty: data.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
                         data.specialty === 'pol' ? 'POL - Perito Odonto Legal' : 
                         'Associado',
@@ -117,8 +118,8 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
             }
             onClick={closeMenu}
           >
-            <Users className="mr-3 h-5 w-5" />
-            <span>Painel Administrativo</span>
+            <Shield className="mr-3 h-5 w-5 text-sindmoba-primary" />
+            <span className="font-medium">Painel Administrativo</span>
           </NavLink>
         )}
         {menuItems.map((item) => (
