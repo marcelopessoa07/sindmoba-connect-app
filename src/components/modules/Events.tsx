@@ -1,68 +1,83 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Event {
-  id: number;
+  id: string;
   title: string;
   description: string;
-  date: string;
-  time: string;
+  start_date: string;
+  end_date: string;
   location: string;
-  type: 'assembly' | 'course' | 'celebration' | 'other';
+  event_type: 'assembly' | 'course' | 'celebration' | 'other';
 }
 
 const Events = () => {
-  // Mocked events data
-  const [events] = useState<Event[]>([
-    {
-      id: 1,
-      title: 'Assembleia Geral Extraordinária',
-      description: 'Discussão sobre a nova tabela salarial proposta pelo governo estadual.',
-      date: '15/05/2025',
-      time: '18:00',
-      location: 'Sede do SINDMOBA - Av. Tancredo Neves, 1632, Salvador',
-      type: 'assembly'
-    },
-    {
-      id: 2,
-      title: 'Curso de atualização em Traumatologia Forense',
-      description: 'Curso ministrado pelo Dr. João Mendes, com carga horária de 16h e certificado.',
-      date: '10/06/2025',
-      time: '08:00',
-      location: 'Auditório da Faculdade de Medicina da UFBA',
-      type: 'course'
-    },
-    {
-      id: 3,
-      title: 'Confraternização de Aniversário do Sindicato',
-      description: '12 anos do SINDMOBA. Venha celebrar conosco com um coquetel especial!',
-      date: '22/07/2025',
-      time: '19:30',
-      location: 'Restaurante Vista Bahia - Salvador',
-      type: 'celebration'
-    },
-    {
-      id: 4,
-      title: 'Workshop sobre Laudos Periciais',
-      description: 'Padronização e melhores práticas para elaboração de laudos periciais.',
-      date: '05/08/2025',
-      time: '14:00',
-      location: 'Sala de Treinamento do SINDMOBA',
-      type: 'course'
-    },
-    {
-      id: 5,
-      title: 'Assembleia Ordinária',
-      description: 'Prestação de contas do primeiro semestre e planejamento para o segundo semestre.',
-      date: '10/09/2025',
-      time: '17:00',
-      location: 'Sede do SINDMOBA - Av. Tancredo Neves, 1632, Salvador',
-      type: 'assembly'
-    }
-  ]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const getEventTypeStyle = (type: Event['type']) => {
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Fetching events from Supabase...');
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .order('start_date', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching events:', error);
+          setError('Não foi possível carregar os eventos. Tente novamente mais tarde.');
+          return;
+        }
+
+        console.log('Events fetched:', data);
+        
+        // Type cast the event_type to match our interface
+        const typedEvents = data?.map(event => ({
+          ...event,
+          event_type: validateEventType(event.event_type)
+        })) || [];
+
+        setEvents(typedEvents);
+      } catch (error) {
+        console.error('Error in events fetch:', error);
+        setError('Ocorreu um erro ao carregar os eventos.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Helper function to validate event_type
+  const validateEventType = (type: string): Event['event_type'] => {
+    const validTypes: Event['event_type'][] = ['assembly', 'course', 'celebration', 'other'];
+    return validTypes.includes(type as Event['event_type']) 
+      ? (type as Event['event_type']) 
+      : 'other';
+  };
+
+  // Format date from ISO to DD/MM/YYYY
+  const formatDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Format time from ISO date
+  const formatTime = (isoDate: string) => {
+    const date = new Date(isoDate);
+    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getEventTypeStyle = (type: Event['event_type']) => {
     switch (type) {
       case 'assembly':
         return 'bg-sindmoba-accent text-sindmoba-dark';
@@ -75,7 +90,7 @@ const Events = () => {
     }
   };
 
-  const getEventTypeName = (type: Event['type']) => {
+  const getEventTypeName = (type: Event['event_type']) => {
     switch (type) {
       case 'assembly':
         return 'Assembleia';
@@ -87,6 +102,25 @@ const Events = () => {
         return 'Outro';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center p-8">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="sindmoba-container">
+        <h2 className="mb-6">Agenda e Eventos</h2>
+        <div className="text-center py-8 bg-red-50 rounded-lg">
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sindmoba-container">
@@ -107,32 +141,38 @@ const Events = () => {
         </div>
       </div>
       
-      <div className="space-y-4">
-        {events.map((event) => (
-          <div key={event.id} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex">
-              <div className="flex-shrink-0 w-2 h-full bg-opacity-80" style={{ backgroundColor: event.type === 'assembly' ? '#3498db' : event.type === 'course' ? '#27ae60' : '#f39c12' }}></div>
-              <div className="p-4 w-full">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-1 text-sindmoba-primary" />
-                    <span className="text-sm font-medium">{event.date} às {event.time}</span>
+      {events.length > 0 ? (
+        <div className="space-y-4">
+          {events.map((event) => (
+            <div key={event.id} className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="flex">
+                <div className="flex-shrink-0 w-2 h-full bg-opacity-80" style={{ backgroundColor: event.event_type === 'assembly' ? '#3498db' : event.event_type === 'course' ? '#27ae60' : '#f39c12' }}></div>
+                <div className="p-4 w-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1 text-sindmoba-primary" />
+                      <span className="text-sm font-medium">{formatDate(event.start_date)} às {formatTime(event.start_date)}</span>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${getEventTypeStyle(event.event_type)}`}>
+                      {getEventTypeName(event.event_type)}
+                    </span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${getEventTypeStyle(event.type)}`}>
-                    {getEventTypeName(event.type)}
-                  </span>
-                </div>
-                
-                <h3 className="text-lg font-bold mb-2">{event.title}</h3>
-                <p className="text-gray-600 mb-2">{event.description}</p>
-                <div className="text-sm text-gray-500">
-                  <strong>Local:</strong> {event.location}
+                  
+                  <h3 className="text-lg font-bold mb-2">{event.title}</h3>
+                  <p className="text-gray-600 mb-2">{event.description}</p>
+                  <div className="text-sm text-gray-500">
+                    <strong>Local:</strong> {event.location}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">Nenhum evento disponível no momento.</p>
+        </div>
+      )}
     </div>
   );
 };

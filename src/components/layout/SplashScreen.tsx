@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Spinner } from '@/components/ui/spinner';
 
 const SplashScreen = () => {
   const navigate = useNavigate();
@@ -9,16 +10,21 @@ const SplashScreen = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    console.log('SplashScreen mounted, auth loading:', loading, 'user:', user ? 'exists' : 'none');
+    
     // Only proceed with navigation when auth state is determined
     if (!loading) {
+      console.log('Auth loading complete, preparing to navigate');
       const timer = setTimeout(() => {
         setFadeOut(true);
         setTimeout(() => {
           try {
             // Navigate to login if no user, otherwise to main
             if (user) {
+              console.log('User found, navigating to /main');
               navigate('/main');
             } else {
+              console.log('No user found, navigating to /login');
               navigate('/login');
             }
           } catch (error) {
@@ -27,7 +33,7 @@ const SplashScreen = () => {
             window.location.href = '/login';
           }
         }, 500);
-      }, 2500);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }
@@ -49,9 +55,16 @@ const SplashScreen = () => {
           Sindicato dos Peritos Médicos e Odonto Legais da Bahia
         </h1>
         
-        <p className="animate-pulse-gentle text-center text-lg text-white">
+        <p className="text-center text-lg text-white">
           Unindo e fortalecendo a perícia oficial da Bahia
         </p>
+
+        {loading && (
+          <div className="mt-8 flex items-center text-white">
+            <Spinner className="text-white" />
+            <span className="ml-2">Carregando...</span>
+          </div>
+        )}
       </div>
     </div>
   );

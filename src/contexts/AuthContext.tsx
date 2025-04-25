@@ -1,7 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UserProfile {
@@ -26,7 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
@@ -54,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log('Initializing auth...');
         // Set up auth state listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
@@ -77,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('Error getting auth session:', error);
         } else {
+          console.log('Session check complete:', data.session ? 'session found' : 'no session');
           setSession(data.session);
           setUser(data.session?.user ?? null);
           
@@ -88,8 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         setLoading(false);
+        console.log('Auth initialization complete');
 
         return () => {
+          console.log('Cleaning up auth subscription');
           subscription.unsubscribe();
         };
       } catch (error) {
@@ -103,8 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log('Signing out...');
       await supabase.auth.signOut();
-      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
