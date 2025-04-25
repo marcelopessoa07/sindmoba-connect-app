@@ -36,7 +36,13 @@ const Documents = () => {
           return;
         }
 
-        setDocuments(data || []);
+        // Type cast the category to match our interface
+        const typedDocuments = data?.map(doc => ({
+          ...doc,
+          category: validateCategory(doc.category)
+        })) || [];
+
+        setDocuments(typedDocuments);
       } catch (error) {
         console.error('Error in documents fetch:', error);
       } finally {
@@ -46,6 +52,14 @@ const Documents = () => {
 
     fetchDocuments();
   }, []);
+
+  // Helper function to validate document category
+  const validateCategory = (category: string): Document['category'] => {
+    const validCategories: Document['category'][] = ['statute', 'minutes', 'agreements', 'official'];
+    return validCategories.includes(category as Document['category']) 
+      ? (category as Document['category']) 
+      : 'official';
+  };
 
   const getCategoryName = (category: Document['category']) => {
     switch (category) {

@@ -31,7 +31,13 @@ const Events = () => {
           return;
         }
 
-        setEvents(data || []);
+        // Type cast the event_type to match our interface
+        const typedEvents = data?.map(event => ({
+          ...event,
+          event_type: validateEventType(event.event_type)
+        })) || [];
+
+        setEvents(typedEvents);
       } catch (error) {
         console.error('Error in events fetch:', error);
       } finally {
@@ -41,6 +47,14 @@ const Events = () => {
 
     fetchEvents();
   }, []);
+
+  // Helper function to validate event_type
+  const validateEventType = (type: string): Event['event_type'] => {
+    const validTypes: Event['event_type'][] = ['assembly', 'course', 'celebration', 'other'];
+    return validTypes.includes(type as Event['event_type']) 
+      ? (type as Event['event_type']) 
+      : 'other';
+  };
 
   // Format date from ISO to DD/MM/YYYY
   const formatDate = (isoDate: string) => {
