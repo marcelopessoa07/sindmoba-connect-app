@@ -1,9 +1,8 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 import { 
   CalendarDays, 
   FileText, 
@@ -12,6 +11,8 @@ import {
   Newspaper,
   Folder
 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/hooks/use-toast';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -21,27 +22,59 @@ interface AdminLayoutProps {
 const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user) {
+        console.log('No user found, redirecting to login');
         navigate('/login');
         return;
       }
 
       try {
+        console.log('Checking admin role for user:', user.id);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error || !data || !('role' in data) || data.role !== 'admin') {
+        console.log('Profile data:', data, 'Error:', error);
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setError('Error fetching user profile');
+          toast({
+            title: 'Error',
+            description: 'Failed to validate admin permissions',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (!data || !('role' in data) || data.role !== 'admin') {
+          console.log('User is not an admin, redirecting to main');
+          toast({
+            title: 'Access Denied',
+            description: 'You do not have admin privileges',
+            variant: 'destructive',
+          });
           navigate('/main');
           return;
         }
+
+        console.log('Admin access confirmed');
+        setLoading(false);
       } catch (error) {
         console.error('Error checking admin role:', error);
+        setError('Failed to validate admin permissions');
+        toast({
+          title: 'Error',
+          description: 'An unexpected error occurred',
+          variant: 'destructive',
+        });
         navigate('/main');
       }
     };
@@ -57,6 +90,32 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { title: 'Arquivos Enviados', icon: Folder, path: '/admin/submissions' },
     { title: 'FAQ', icon: HelpCircle, path: '/admin/faq' },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center p-8">
+        <Spinner size="lg" />
+        <span className="ml-2">Verificando permissões de administrador...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+          <h2 className="mb-4 text-lg font-bold text-red-700">Erro</h2>
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={() => navigate('/main')}
+            className="mt-4 rounded-lg bg-sindmoba-primary px-4 py-2 text-white"
+          >
+            Voltar para a página principal
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
