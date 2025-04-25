@@ -16,13 +16,25 @@ const AdminPage = () => {
         return;
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-      if (data?.role !== 'admin') {
+        if (error) {
+          console.error('Error fetching profile:', error);
+          navigate('/main');
+          return;
+        }
+
+        // Check if role exists and is admin
+        if (!data || !('role' in data) || data.role !== 'admin') {
+          navigate('/main');
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error);
         navigate('/main');
       }
     };

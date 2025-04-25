@@ -16,14 +16,24 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   useEffect(() => {
     const checkAdminRole = async () => {
       if (user) {
-        // Verificar se o usuário tem role 'admin'
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        try {
+          // Verificar se o usuário tem role 'admin'
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
 
-        setIsAdmin(data?.role === 'admin');
+          if (error) {
+            console.error('Error fetching profile:', error);
+            return;
+          }
+
+          // Check if role exists and is admin
+          setIsAdmin(data && 'role' in data && data.role === 'admin');
+        } catch (error) {
+          console.error('Error checking admin role:', error);
+        }
       }
     };
 
