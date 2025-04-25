@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { Calendar, File, Book, List, Mail, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface MainMenuProps {
   closeMenu: () => void;
@@ -14,6 +16,23 @@ interface MenuItem {
 
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
   const { user, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        setIsAdmin(profile?.role === 'admin');
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
   
   const menuItems: MenuItem[] = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
@@ -49,6 +68,22 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       </div>
       
       <div className="divide-y">
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex items-center px-4 py-3 ${
+                isActive
+                  ? 'bg-sindmoba-light text-sindmoba-primary font-semibold'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`
+            }
+            onClick={closeMenu}
+          >
+            <Users className="mr-3 h-5 w-5" />
+            <span>Painel Administrativo</span>
+          </NavLink>
+        )}
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
