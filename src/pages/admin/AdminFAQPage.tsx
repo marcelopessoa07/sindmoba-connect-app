@@ -17,11 +17,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Spinner } from '@/components/ui/spinner';
 
 interface FAQ {
-  id: number;
+  id: string;
   question: string;
   answer: string;
-  category: string;
+  category: string | null;
   created_at: string;
+  is_active?: boolean;
+  order_index?: number;
+  updated_at?: string;
 }
 
 const AdminFAQPage = () => {
@@ -29,7 +32,7 @@ const AdminFAQPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    id: null as number | null,
+    id: null as string | null,
     question: '',
     answer: '',
     category: '',
@@ -45,13 +48,13 @@ const AdminFAQPage = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('faqs')
+        .from('faq_items')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setFaqs(data || []);
+      setFaqs(data as FAQ[]);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       toast({
@@ -93,14 +96,14 @@ const AdminFAQPage = () => {
     setIsSubmitting(true);
 
     try {
-      if (editMode) {
+      if (editMode && formData.id) {
         // Update existing FAQ
         const { error } = await supabase
-          .from('faqs')
+          .from('faq_items')
           .update({
             question: formData.question,
             answer: formData.answer,
-            category: formData.category,
+            category: formData.category || null,
           })
           .eq('id', formData.id);
 
@@ -112,11 +115,11 @@ const AdminFAQPage = () => {
         });
       } else {
         // Create new FAQ
-        const { error } = await supabase.from('faqs').insert([
+        const { error } = await supabase.from('faq_items').insert([
           {
             question: formData.question,
             answer: formData.answer,
-            category: formData.category,
+            category: formData.category || null,
           },
         ]);
 
@@ -147,18 +150,18 @@ const AdminFAQPage = () => {
       id: faq.id,
       question: faq.question,
       answer: faq.answer,
-      category: faq.category,
+      category: faq.category || '',
     });
     setEditMode(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Tem certeza de que deseja excluir esta pergunta?')) {
       return;
     }
 
     try {
-      const { error } = await supabase.from('faqs').delete().eq('id', id);
+      const { error } = await supabase.from('faq_items').delete().eq('id', id);
 
       if (error) throw error;
 

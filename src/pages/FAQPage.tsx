@@ -1,13 +1,50 @@
 
+import { useState, useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
+
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+}
 
 const FAQPage = () => {
-  const faqItems = [
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFAQs = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('faq_items')
+          .select('id, question, answer, category')
+          .eq('is_active', true)
+          .order('order_index', { ascending: true });
+
+        if (error) throw error;
+
+        setFaqs(data || []);
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFAQs();
+  }, []);
+
+  // Default static FAQs as fallback if no items from database
+  const staticFaqItems = [
     {
       question: "Como me filiar ao SINDMOBA?",
       answer: "Para se filiar ao SINDMOBA, você deve preencher o formulário de filiação disponível neste aplicativo na seção 'Filiação ao Sindicato'. Após o preenchimento, nossa equipe analisará seus dados e documentos, e entrará em contato para finalizar o processo. Alternativamente, você também pode visitar nossa sede com seus documentos pessoais, comprovante de vínculo profissional e uma foto 3x4."
@@ -42,6 +79,13 @@ const FAQPage = () => {
     }
   ];
 
+  const displayFaqs = faqs.length > 0 ? faqs : staticFaqItems.map((item, index) => ({
+    id: `static-${index}`,
+    question: item.question,
+    answer: item.answer,
+    category: null
+  }));
+
   return (
     <div className="sindmoba-container">
       <h2 className="mb-6">Perguntas Frequentes</h2>
@@ -50,18 +94,24 @@ const FAQPage = () => {
         benefícios e serviços oferecidos aos associados.
       </p>
       
-      <Accordion type="single" collapsible className="w-full">
-        {faqItems.map((item, index) => (
-          <AccordionItem key={index} value={`item-${index}`}>
-            <AccordionTrigger className="text-left font-medium text-sindmoba-dark">
-              {item.question}
-            </AccordionTrigger>
-            <AccordionContent className="text-gray-600">
-              {item.answer}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <Spinner />
+        </div>
+      ) : (
+        <Accordion type="single" collapsible className="w-full">
+          {displayFaqs.map((item) => (
+            <AccordionItem key={item.id} value={item.id}>
+              <AccordionTrigger className="text-left font-medium text-sindmoba-dark">
+                {item.question}
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-600">
+                {item.answer}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      )}
       
       <div className="mt-8 rounded-lg bg-sindmoba-light p-4">
         <p className="text-center text-gray-700">
