@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 interface MemberRegistrationProps {
   onRegistrationSuccess?: () => void;
@@ -19,15 +21,19 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     professionalId: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing again
+    if (error) setError(null);
   };
 
   const handleSpecializationChange = (value: string) => {
     setFormData(prev => ({ ...prev, specialization: value }));
+    if (error) setError(null);
   };
 
   const formatCPF = (value: string) => {
@@ -42,18 +48,19 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedCPF = formatCPF(e.target.value);
     setFormData(prev => ({ ...prev, cpf: formattedCPF }));
+    if (error) setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
-      // 1. Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        email_confirm: true,
-        user_metadata: {
+      // Use the create-member edge function instead of direct admin API
+      const { data, error: fnError } = await supabase.functions.invoke('create-member', {
+        body: {
+          email: formData.email,
           full_name: formData.fullName,
           cpf: formData.cpf,
           specialty: formData.specialization,
@@ -61,26 +68,9 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         },
       });
 
-      if (authError) throw authError;
-
-      // 2. Generate password reset link
-      const { data: resetData, error: resetError } = await supabase.auth.admin.generateLink({
-        type: 'recovery',
-        email: formData.email,
-      });
-
-      if (resetError) throw resetError;
-
-      // 3. Send welcome email with password reset link
-      const response = await supabase.functions.invoke('send-invite', {
-        body: {
-          email: formData.email,
-          name: formData.fullName,
-          resetLink: resetData.properties.action_link,
-        },
-      });
-
-      if (response.error) throw response.error;
+      if (fnError) throw new Error(fnError.message);
+      
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Membro cadastrado com sucesso!",
@@ -101,6 +91,8 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         onRegistrationSuccess();
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
+      setError(error.message);
       toast({
         title: "Erro no cadastro",
         description: error.message,
@@ -114,6 +106,13 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">Cadastrar Novo Membro</h2>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">

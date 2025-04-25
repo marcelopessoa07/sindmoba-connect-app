@@ -78,25 +78,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
 
         // THEN check for existing session
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting auth session:', error);
-          setLoading(false);
-        } else {
-          console.log('Session check complete:', data.session ? 'session found' : 'no session');
+        try {
+          const { data, error } = await supabase.auth.getSession();
           
-          // Update session and user
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
-          
-          // If we have a session with a user, fetch their profile
-          if (data.session?.user) {
-            const userProfile = await fetchProfile(data.session.user.id);
-            setProfile(userProfile);
-            console.log('User profile from session check:', userProfile);
+          if (error) {
+            console.error('Error getting auth session:', error);
+          } else {
+            console.log('Session check complete:', data.session ? 'session found' : 'no session');
+            
+            // Update session and user
+            setSession(data.session);
+            setUser(data.session?.user ?? null);
+            
+            // If we have a session with a user, fetch their profile
+            if (data.session?.user) {
+              const userProfile = await fetchProfile(data.session.user.id);
+              setProfile(userProfile);
+              console.log('User profile from session check:', userProfile);
+            }
           }
-          
+        } catch (sessionError) {
+          console.error('Exception during session fetch:', sessionError);
+        } finally {
+          // Always set loading to false, even if there was an error
           setLoading(false);
         }
         
