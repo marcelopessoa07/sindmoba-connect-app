@@ -39,43 +39,49 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            
-            <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/documents" element={<AdminDocumentsPage />} />
-              <Route path="/admin/events" element={<AdminEventsPage />} />
-              <Route path="/admin/news" element={<AdminNewsPage />} />
-              <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
-              <Route path="/admin/faq" element={<AdminFAQPage />} />
-              <Route path="/main" element={<MainPage />} />
-              <Route path="/news" element={<NewsPage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/documents" element={<DocumentsPage />} />
-              <Route path="/legislation" element={<LegislationPage />} />
-              <Route path="/faq" element={<FAQPage />} />
-              <Route path="/membership" element={<MembershipPage />} />
-              <Route path="/file-submission" element={<FileSubmissionPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              
+              <Route element={
+                <PrivateRoute>
+                  <AppLayout />
+                </PrivateRoute>
+              }>
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/documents" element={<AdminDocumentsPage />} />
+                <Route path="/admin/events" element={<AdminEventsPage />} />
+                <Route path="/admin/news" element={<AdminNewsPage />} />
+                <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
+                <Route path="/admin/faq" element={<AdminFAQPage />} />
+                <Route path="/main" element={<MainPage />} />
+                <Route path="/news" element={<NewsPage />} />
+                <Route path="/events" element={<EventsPage />} />
+                <Route path="/documents" element={<DocumentsPage />} />
+                <Route path="/legislation" element={<LegislationPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+                <Route path="/membership" element={<MembershipPage />} />
+                <Route path="/file-submission" element={<FileSubmissionPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+            <Sonner />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -6,24 +6,32 @@ import { useAuth } from '@/contexts/AuthContext';
 const SplashScreen = () => {
   const navigate = useNavigate();
   const [fadeOut, setFadeOut] = useState(false);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Safely navigate after splash screen
-    const timer = setTimeout(() => {
-      setFadeOut(true);
-      setTimeout(() => {
-        // Navigate to login if no user, otherwise to main
-        if (user) {
-          navigate('/main');
-        } else {
-          navigate('/login');
-        }
-      }, 500);
-    }, 2500);
+    // Only proceed with navigation when auth state is determined
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setFadeOut(true);
+        setTimeout(() => {
+          try {
+            // Navigate to login if no user, otherwise to main
+            if (user) {
+              navigate('/main');
+            } else {
+              navigate('/login');
+            }
+          } catch (error) {
+            console.error('Navigation error:', error);
+            // Fallback navigation
+            window.location.href = '/login';
+          }
+        }, 500);
+      }, 2500);
 
-    return () => clearTimeout(timer);
-  }, [navigate, user]);
+      return () => clearTimeout(timer);
+    }
+  }, [navigate, user, loading]);
 
   return (
     <div 
