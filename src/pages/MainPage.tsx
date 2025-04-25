@@ -1,10 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, File, Book, List, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface MenuItem {
   title: string;
@@ -14,22 +13,13 @@ interface MenuItem {
   description: string;
 }
 
-interface Notification {
-  id: string;
-  title: string;
-  time: string;
-}
-
 const MainPage = () => {
-  const { profile } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  
-  // In a real application, you would fetch notifications from the server here
-  useEffect(() => {
-    // Empty this out to have no notifications by default
-    // Later you can implement real notifications fetching from Supabase
-    setNotifications([]);
-  }, []);
+  // Mock data for notifications
+  const [notifications] = useState([
+    { id: 1, title: 'Nova notícia publicada', time: '2 horas atrás' },
+    { id: 2, title: 'Documento disponível para download', time: '5 horas atrás' },
+    { id: 3, title: 'Lembrete: Assembleia amanhã às 18h', time: '1 dia atrás' },
+  ]);
 
   const menuItems: MenuItem[] = [
     { 
@@ -94,16 +84,12 @@ const MainPage = () => {
     <div className="sindmoba-container">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h2 className="mb-1">Bem-vindo, {profile?.full_name || 'Associado'}</h2>
-          <p className="text-sm text-gray-600">
-            {profile?.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
-             profile?.specialty === 'pol' ? 'POL - Perito Odonto Legal' : 
-             'Associado SINDMOBA'}
-          </p>
+          <h2 className="mb-1">Bem-vindo, João</h2>
+          <p className="text-sm text-gray-600">PML - Perito Médico Legal</p>
         </div>
         <div className="h-12 w-12 rounded-full bg-sindmoba-primary p-1">
           <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-lg font-bold text-sindmoba-primary">
-            {profile?.full_name ? profile.full_name.charAt(0) : 'A'}
+            JS
           </div>
         </div>
       </div>
@@ -120,10 +106,7 @@ const MainPage = () => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-600 p-3 bg-white rounded-lg">
-            Bem-vindo ao SINDMOBA! Você ainda não tem notificações.
-            Quando houver novos comunicados do sindicato, eles aparecerão aqui.
-          </p>
+          <p className="text-gray-600">Nenhuma notificação no momento.</p>
         )}
       </section>
 

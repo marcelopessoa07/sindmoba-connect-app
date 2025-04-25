@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const RegisterForm = () => {
@@ -12,7 +12,7 @@ const RegisterForm = () => {
   const [email, setEmail] = useState('');
   const [cpf, setCpf] = useState('');
   const [specialization, setSpecialization] = useState('');
-  const [professionalId, setProfessionalId] = useState('');
+  const [professionalId, setProfessionalId] = useState(''); // Added missing state
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,9 +34,7 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      console.log("Starting registration process");
-      
-      const { data, error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -49,33 +47,17 @@ const RegisterForm = () => {
         },
       });
 
-      console.log("Registration response:", { data, error });
-
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
       toast({
         title: "Cadastro realizado com sucesso!",
         description: "Verifique seu e-mail para confirmar o cadastro.",
       });
-      
-      // Wait a short time before navigating to ensure the toast is seen
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-      
+      navigate('/login');
     } catch (error: any) {
-      console.error("Registration error:", error);
-      
-      let errorMessage = error.message;
-      
-      // Handle specific error cases
-      if (error.message.includes("User already registered")) {
-        errorMessage = "Este e-mail já está cadastrado. Por favor tente fazer login.";
-      }
-      
       toast({
         title: "Erro no cadastro",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -159,7 +141,7 @@ const RegisterForm = () => {
           <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
             Especialidade
           </label>
-          <Select value={specialization} onValueChange={setSpecialization} required>
+          <Select value={specialization} onValueChange={setSpecialization}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione sua especialidade" />
             </SelectTrigger>
@@ -170,6 +152,7 @@ const RegisterForm = () => {
           </Select>
         </div>
         
+        {/* Add Professional Registration ID field */}
         <div className="space-y-2">
           <label htmlFor="professionalId" className="block text-sm font-medium text-gray-700">
             Número de Registro Profissional (CRM/CRO)
@@ -195,7 +178,6 @@ const RegisterForm = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
           />
         </div>
 
@@ -210,7 +192,6 @@ const RegisterForm = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={6}
           />
         </div>
 

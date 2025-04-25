@@ -1,41 +1,23 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuth } from '@/contexts/AuthContext';
-import { Spinner } from '@/components/ui/spinner';
 
 const Index = () => {
   const navigate = useNavigate();
   const { loading } = useAuth();
-  
-  console.log('Index page rendered, auth loading:', loading);
+  const [isReady, setIsReady] = useState(false);
 
-  // If loading takes too long, we'll have a fallback
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.log('Auth loading timeout - navigating to login as fallback');
-        navigate('/login');
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [loading, navigate]);
+    // Make sure we wait for auth to initialize
+    if (!loading) {
+      setIsReady(true);
+    }
+  }, [loading]);
 
-  // Show a loading indicator if auth is still initializing
-  if (loading) {
-    console.log('Rendering loading spinner while auth initializes');
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-sindmoba-primary">
-        <Spinner size="lg" className="text-white" />
-        <span className="ml-2 text-white">Inicializando aplicação...</span>
-      </div>
-    );
-  }
-
-  console.log('Rendering splash screen');
-  return <SplashScreen />;
+  // Only render splash screen when auth state is determined
+  return isReady ? <SplashScreen /> : null;
 };
 
 export default Index;
