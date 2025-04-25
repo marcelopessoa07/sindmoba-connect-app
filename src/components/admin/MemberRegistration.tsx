@@ -57,7 +57,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     setError(null);
 
     try {
-      // Use the create-member edge function instead of direct admin API
+      // Use the create-member edge function
       const { data, error: fnError } = await supabase.functions.invoke('create-member', {
         body: {
           email: formData.email,
@@ -68,14 +68,29 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) {
+        console.error('Edge function error:', fnError);
+        throw new Error(fnError.message || 'Erro na função de cadastro');
+      }
       
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        console.error('Response error:', data.error);
+        throw new Error(data.error);
+      }
 
-      toast({
-        title: "Membro cadastrado com sucesso!",
-        description: "Um email foi enviado para o novo membro configurar sua senha.",
-      });
+      if (data?.warning) {
+        // User created but email not sent
+        toast({
+          title: "Membro cadastrado com aviso",
+          description: data.warning,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Membro cadastrado com sucesso!",
+          description: "Um email foi enviado para o novo membro configurar sua senha.",
+        });
+      }
 
       // Reset form
       setFormData({

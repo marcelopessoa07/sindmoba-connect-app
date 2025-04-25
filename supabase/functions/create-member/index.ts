@@ -34,6 +34,28 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     )
 
+    // Check if user already exists
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing user:', checkError.message)
+      return new Response(
+        JSON.stringify({ error: `Error checking existing user: ${checkError.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    if (existingUser) {
+      return new Response(
+        JSON.stringify({ error: `User with email ${email} already exists` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
     // Create a user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -47,6 +69,7 @@ serve(async (req) => {
     })
 
     if (authError) {
+      console.error('Error creating user:', authError.message)
       return new Response(
         JSON.stringify({ error: `Error creating user: ${authError.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -60,25 +83,41 @@ serve(async (req) => {
     })
 
     if (resetError) {
+      console.error('Error generating password reset link:', resetError.message)
       return new Response(
         JSON.stringify({ error: `Error generating password reset link: ${resetError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
     // Send welcome email with the reset link
-    const { error: emailError } = await supabaseAdmin.functions.invoke('send-invite', {
-      body: {
-        email,
-        name: full_name,
-        resetLink: resetData.properties.action_link,
-      },
-    })
+    try {
+      const { error: emailError } = await supabaseAdmin.functions.invoke('send-invite', {
+        body: {
+          email,
+          name: full_name,
+          resetLink: resetData.properties.action_link,
+        },
+      })
 
-    if (emailError) {
+      if (emailError) {
+        console.error('Error sending welcome email:', emailError.message)
+        return new Response(
+          JSON.stringify({ 
+            warning: `User created, but email could not be sent: ${emailError.message}`,
+            success: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 201 }
+        )
+      }
+    } catch (emailError) {
+      console.error('Exception sending welcome email:', emailError.message)
       return new Response(
-        JSON.stringify({ error: `Error sending welcome email: ${emailError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ 
+          warning: `User created, but email could not be sent: ${emailError.message}`,
+          success: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 201 }
       )
     }
 
@@ -88,6 +127,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
+    console.error('Unexpected error:', error.message)
     return new Response(
       JSON.stringify({ error: `Unexpected error: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
