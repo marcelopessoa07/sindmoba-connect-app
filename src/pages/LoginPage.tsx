@@ -10,18 +10,17 @@ const LoginPage = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    // Only redirect after auth is fully loaded
     if (loading) return;
     
     // Debug logged in user data
     if (user) {
       console.log('User authenticated:', user);
       console.log('User profile data:', profile);
-    }
     
-    if (user && profile) {
       // Redirect based on role
-      console.log('Redirecting user with role:', profile.role);
-      if (profile.role === 'admin') {
+      console.log('Redirecting user with role:', profile?.role || 'unknown');
+      if (profile?.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/main');

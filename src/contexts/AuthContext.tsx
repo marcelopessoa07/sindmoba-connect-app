@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('role, email, full_name, specialty')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -56,19 +56,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Set up auth state listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, currentSession) => {
+          (event, currentSession) => {
             console.log('Auth state change event:', event);
             
-            if (currentSession) {
-              setSession(currentSession);
-              setUser(currentSession.user);
-              
-              const userProfile = await fetchProfile(currentSession.user.id);
-              setProfile(userProfile);
-              console.log('User profile from auth change:', userProfile);
+            // Update session and user synchronously
+            setSession(currentSession);
+            setUser(currentSession?.user ?? null);
+            
+            // If we have a user, fetch their profile but don't block UI
+            if (currentSession?.user) {
+              // Using setTimeout to avoid potential deadlocks with Supabase client
+              setTimeout(async () => {
+                const userProfile = await fetchProfile(currentSession.user.id);
+                setProfile(userProfile);
+                console.log('User profile from auth change:', userProfile);
+              }, 0);
             } else {
-              setSession(null);
-              setUser(null);
               setProfile(null);
             }
           }
@@ -79,20 +82,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (error) {
           console.error('Error getting auth session:', error);
+          setLoading(false);
         } else {
           console.log('Session check complete:', data.session ? 'session found' : 'no session');
           
-          if (data.session) {
-            setSession(data.session);
-            setUser(data.session.user);
-            
+          // Update session and user
+          setSession(data.session);
+          setUser(data.session?.user ?? null);
+          
+          // If we have a session with a user, fetch their profile
+          if (data.session?.user) {
             const userProfile = await fetchProfile(data.session.user.id);
             setProfile(userProfile);
             console.log('User profile from session check:', userProfile);
           }
+          
+          setLoading(false);
         }
         
-        setLoading(false);
         console.log('Auth initialization complete');
 
         return () => {
