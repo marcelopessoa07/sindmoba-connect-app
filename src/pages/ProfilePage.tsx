@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +83,7 @@ const ProfilePage = () => {
   const handleSelectChange = (value: string) => {
     setProfile(prev => ({ 
       ...prev, 
-      specialty: (value === 'pml' || value === 'pol' ? value : '') as SpecialtyType | '' 
+      specialty: (value === 'pml' || value === 'pol' ? value : null) as SpecialtyType | null 
     }));
   };
 
@@ -138,7 +139,7 @@ const ProfilePage = () => {
           phone: profile.phone,
           address: profile.address,
           registration_number: profile.registration_number,
-          specialty: profile.specialty === '' ? null : profile.specialty,
+          specialty: profile.specialty || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -266,14 +267,14 @@ const ProfilePage = () => {
                   Especialidade
                 </label>
                 <Select 
-                  value={profile.specialty} 
+                  value={profile.specialty || null} 
                   onValueChange={handleSelectChange}
                 >
                   <SelectTrigger id="specialty">
                     <SelectValue placeholder="Selecione sua especialidade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Não especificado</SelectItem>
+                    <SelectItem value="none">Não especificado</SelectItem>
                     <SelectItem value="pml">Perito Médico Legal (PML)</SelectItem>
                     <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
                   </SelectContent>
