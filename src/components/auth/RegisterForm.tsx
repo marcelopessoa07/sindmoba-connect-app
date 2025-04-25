@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ const RegisterForm = () => {
   const [email, setEmail] = useState('');
   const [cpf, setCpf] = useState('');
   const [specialization, setSpecialization] = useState('');
+  const [professionalId, setProfessionalId] = useState(''); // Added missing state
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -148,6 +150,21 @@ const RegisterForm = () => {
               <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        
+        {/* Add Professional Registration ID field */}
+        <div className="space-y-2">
+          <label htmlFor="professionalId" className="block text-sm font-medium text-gray-700">
+            Número de Registro Profissional (CRM/CRO)
+          </label>
+          <Input
+            id="professionalId"
+            type="text"
+            placeholder="Seu número de registro"
+            value={professionalId}
+            onChange={(e) => setProfessionalId(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
