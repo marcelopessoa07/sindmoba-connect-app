@@ -21,6 +21,11 @@ import MembershipPage from "./pages/MembershipPage";
 import FileSubmissionPage from "./pages/FileSubmissionPage";
 import ContactPage from "./pages/ContactPage";
 import AdminPage from "./pages/AdminPage";
+import AdminDocumentsPage from "./pages/admin/AdminDocumentsPage";
+import AdminEventsPage from "./pages/admin/AdminEventsPage";
+import AdminNewsPage from "./pages/admin/AdminNewsPage";
+import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
+import AdminFAQPage from "./pages/admin/AdminFAQPage";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +43,11 @@ const App = () => (
             
             <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin/documents" element={<AdminDocumentsPage />} />
+              <Route path="/admin/events" element={<AdminEventsPage />} />
+              <Route path="/admin/news" element={<AdminNewsPage />} />
+              <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
+              <Route path="/admin/faq" element={<AdminFAQPage />} />
               <Route path="/main" element={<MainPage />} />
               <Route path="/news" element={<NewsPage />} />
               <Route path="/events" element={<EventsPage />} />

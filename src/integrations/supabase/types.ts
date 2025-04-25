@@ -9,6 +9,236 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      document_recipients: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          recipient_id: string | null
+          recipient_type: string
+          specialty: Database["public"]["Enums"]["specialty_type"] | null
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          recipient_id?: string | null
+          recipient_type: string
+          specialty?: Database["public"]["Enums"]["specialty_type"] | null
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          recipient_id?: string | null
+          recipient_type?: string
+          specialty?: Database["public"]["Enums"]["specialty_type"] | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_recipients_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          event_type: string
+          id: string
+          location: string | null
+          start_date: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          event_type: string
+          id?: string
+          location?: string | null
+          start_date: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          event_type?: string
+          id?: string
+          location?: string | null
+          start_date?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      faq_items: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          question: string
+          updated_at: string | null
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          question: string
+          updated_at?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          question?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      member_submissions: {
+        Row: {
+          created_at: string | null
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          observations: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          observations?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_type?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          observations?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      news: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          published_at: string | null
+          summary: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          summary: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          published_at?: string | null
+          summary?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -19,6 +249,7 @@ export type Database = {
           id: string
           phone: string | null
           registration_number: string | null
+          role: string | null
           specialty: Database["public"]["Enums"]["specialty_type"] | null
           updated_at: string | null
         }
@@ -31,6 +262,7 @@ export type Database = {
           id: string
           phone?: string | null
           registration_number?: string | null
+          role?: string | null
           specialty?: Database["public"]["Enums"]["specialty_type"] | null
           updated_at?: string | null
         }
@@ -43,6 +275,7 @@ export type Database = {
           id?: string
           phone?: string | null
           registration_number?: string | null
+          role?: string | null
           specialty?: Database["public"]["Enums"]["specialty_type"] | null
           updated_at?: string | null
         }
