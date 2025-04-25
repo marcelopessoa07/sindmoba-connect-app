@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('role, email, full_name, specialty')
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
+      console.log('Profile data received:', data);
       return data;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -60,8 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
-              const profile = await fetchProfile(currentSession.user.id);
-              setProfile(profile);
+              const userProfile = await fetchProfile(currentSession.user.id);
+              console.log('User profile from auth change:', userProfile);
+              setProfile(userProfile);
             } else {
               setProfile(null);
             }
@@ -78,8 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.session?.user ?? null);
           
           if (data.session?.user) {
-            const profile = await fetchProfile(data.session.user.id);
-            setProfile(profile);
+            const userProfile = await fetchProfile(data.session.user.id);
+            console.log('User profile from session check:', userProfile);
+            setProfile(userProfile);
           }
         }
         
