@@ -17,10 +17,15 @@ interface Event {
 const Events = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Fetching events from Supabase...');
         const { data, error } = await supabase
           .from('events')
           .select('*')
@@ -28,9 +33,12 @@ const Events = () => {
 
         if (error) {
           console.error('Error fetching events:', error);
+          setError('Não foi possível carregar os eventos. Tente novamente mais tarde.');
           return;
         }
 
+        console.log('Events fetched:', data);
+        
         // Type cast the event_type to match our interface
         const typedEvents = data?.map(event => ({
           ...event,
@@ -40,6 +48,7 @@ const Events = () => {
         setEvents(typedEvents);
       } catch (error) {
         console.error('Error in events fetch:', error);
+        setError('Ocorreu um erro ao carregar os eventos.');
       } finally {
         setLoading(false);
       }
@@ -98,6 +107,17 @@ const Events = () => {
     return (
       <div className="flex justify-center p-8">
         <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="sindmoba-container">
+        <h2 className="mb-6">Agenda e Eventos</h2>
+        <div className="text-center py-8 bg-red-50 rounded-lg">
+          <p className="text-red-600">{error}</p>
+        </div>
       </div>
     );
   }
