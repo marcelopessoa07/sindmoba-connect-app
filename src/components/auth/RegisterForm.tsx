@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const RegisterForm = () => {
   const [fullName, setFullName] = useState('');
@@ -17,10 +17,9 @@ const RegisterForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     if (password !== confirmPassword) {
       toast({
         title: "Erro de validação",
@@ -32,15 +31,36 @@ const RegisterForm = () => {
     
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            cpf,
+            specialty: specialization,
+            registration_number: professionalId,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
       toast({
-        title: "Solicitação enviada com sucesso!",
-        description: "Seu cadastro está sendo analisado. Entraremos em contato em breve.",
+        title: "Cadastro realizado com sucesso!",
+        description: "Verifique seu e-mail para confirmar o cadastro.",
       });
       navigate('/login');
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Erro no cadastro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatCPF = (value: string) => {

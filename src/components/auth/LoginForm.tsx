@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginForm = () => {
   const [loginType, setLoginType] = useState<'email' | 'cpf'>('email');
@@ -14,26 +14,38 @@ const LoginForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const identifier = loginType === 'email' ? email : cpf;
+      const { error } = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password,
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao SINDMOBA Connect",
       });
       navigate('/main');
-    }, 1000);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao fazer login",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatCPF = (value: string) => {
-    // Only allow digits
     const digits = value.replace(/\D/g, '');
     
-    // Apply CPF format: 000.000.000-00
     let formattedValue = digits;
     if (digits.length > 3) {
       formattedValue = digits.replace(/^(\d{3})/, '$1.');

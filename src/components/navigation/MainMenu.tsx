@@ -1,6 +1,6 @@
-
 import { NavLink } from 'react-router-dom';
 import { Calendar, File, Book, List, Mail, Users } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MainMenuProps {
   closeMenu: () => void;
@@ -13,6 +13,8 @@ interface MenuItem {
 }
 
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
+  const { user, signOut } = useAuth();
+  
   const menuItems: MenuItem[] = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
@@ -69,7 +71,10 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       <div className="mt-auto">
         <button
           className="flex w-full items-center justify-center rounded-md border border-sindmoba-danger py-2 text-sindmoba-danger"
-          onClick={closeMenu}
+          onClick={() => {
+            signOut();
+            closeMenu();
+          }}
         >
           Sair
         </button>
