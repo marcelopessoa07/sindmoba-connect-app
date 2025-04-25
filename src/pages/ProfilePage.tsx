@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,9 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Database } from '@/integrations/supabase/types';
+
+type SpecialtyType = Database["public"]["Enums"]["specialty_type"];
 
 const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +25,7 @@ const ProfilePage = () => {
     phone: '',
     address: '',
     registration_number: '',
-    specialty: ''
+    specialty: '' as SpecialtyType | ''
   });
   
   const { user } = useAuth();
@@ -78,14 +80,15 @@ const ProfilePage = () => {
   };
 
   const handleSelectChange = (value: string) => {
-    setProfile(prev => ({ ...prev, specialty: value }));
+    setProfile(prev => ({ 
+      ...prev, 
+      specialty: (value === 'pml' || value === 'pol' ? value : '') as SpecialtyType | '' 
+    }));
   };
 
   const formatCPF = (value: string) => {
-    // Only allow digits
     const digits = value.replace(/\D/g, '');
     
-    // Apply CPF format: 000.000.000-00
     let formattedValue = digits;
     if (digits.length > 3) {
       formattedValue = digits.replace(/^(\d{3})/, '$1.');
@@ -106,10 +109,8 @@ const ProfilePage = () => {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow digits
     const digits = e.target.value.replace(/\D/g, '');
     
-    // Apply phone format: (00) 00000-0000
     let formattedValue = digits;
     if (digits.length > 2) {
       formattedValue = digits.replace(/^(\d{2})/, '($1) ');

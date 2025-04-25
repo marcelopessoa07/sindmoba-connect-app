@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, Clock, X } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
+
+type SpecialtyType = Database["public"]["Enums"]["specialty_type"];
 
 const fileCategories = [
   { value: 'estatuto', label: 'Estatuto do SINDMOBA' },
@@ -45,7 +47,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [recipientType, setRecipientType] = useState('all'); // 'all', 'specialty', 'individual'
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');
+  const [selectedSpecialty, setSelectedSpecialty] = useState<SpecialtyType | ''>('');
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,25 +136,25 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
       // Handle recipients based on selected type
       if (recipientType === 'all') {
         // Send to all users - no filter needed
-        await supabase
+        const { error } = await supabase
           .from('document_recipients')
-          .insert([
-            {
-              document_id: documentData.id,
-              recipient_type: 'all'
-            }
-          ]);
+          .insert({
+            document_id: documentData.id,
+            recipient_type: 'all'
+          });
+          
+        if (error) throw error;
       } else if (recipientType === 'specialty' && selectedSpecialty) {
         // Send to specific specialty
-        await supabase
+        const { error } = await supabase
           .from('document_recipients')
-          .insert([
-            {
-              document_id: documentData.id,
-              recipient_type: 'specialty',
-              specialty: selectedSpecialty
-            }
-          ]);
+          .insert({
+            document_id: documentData.id,
+            recipient_type: 'specialty',
+            specialty: selectedSpecialty
+          });
+          
+        if (error) throw error;
       }
       // Note: individual recipients would be handled here if needed
       
@@ -247,7 +249,14 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           {recipientType === 'specialty' && (
             <div className="space-y-2">
               <Label htmlFor="specialty">Especialidade *</Label>
-              <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+              <Select 
+                value={selectedSpecialty} 
+                onValueChange={(value: string) => {
+                  if (value === 'pml' || value === 'pol') {
+                    setSelectedSpecialty(value);
+                  }
+                }}
+              >
                 <SelectTrigger id="specialty">
                   <SelectValue placeholder="Selecione a especialidade" />
                 </SelectTrigger>
@@ -357,7 +366,6 @@ const AdminDocumentsPage = () => {
     }
   };
 
-  // Fetch documents on mount
   useState(() => {
     fetchDocuments();
   });
