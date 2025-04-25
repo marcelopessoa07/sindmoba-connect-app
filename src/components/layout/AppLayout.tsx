@@ -4,11 +4,15 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import MainMenu from '../navigation/MainMenu';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
+import { useNotifications } from '@/hooks/use-notifications';
 
 const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Initialize notifications
+  useNotifications();
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -34,6 +38,8 @@ const AppLayout = () => {
         return 'Envio de Arquivos';
       case '/contact':
         return 'Contato e Atendimento';
+      case '/profile':
+        return 'Meu Perfil';
       default:
         return 'SINDMOBA';
     }

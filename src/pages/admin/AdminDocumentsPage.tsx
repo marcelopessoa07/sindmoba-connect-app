@@ -1,24 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,49 +12,325 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Pencil, Trash2, Plus, Upload, File } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { FileText, Upload, Clock, X } from 'lucide-react';
 
-interface Document {
-  id: string;
-  title: string;
-  description: string | null;
-  file_url: string;
-  file_type: string;
-  file_size: number;
-  category: string;
-  created_at: string | null;
+const fileCategories = [
+  { value: 'estatuto', label: 'Estatuto do SINDMOBA' },
+  { value: 'atas', label: 'Atas de assembleias' },
+  { value: 'convenios', label: 'Convênios e acordos coletivos' },
+  { value: 'comunicados', label: 'Comunicados oficiais' },
+  { value: 'outros', label: 'Outros documentos' }
+];
+
+interface UploadDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUploadSuccess: () => void;
 }
 
-const AdminDocumentsPage = () => {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
-  const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
+const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps) => {
+  const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-  });
+  const [filePreview, setFilePreview] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [recipientType, setRecipientType] = useState('all'); // 'all', 'specialty', 'individual'
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');
   const { toast } = useToast();
 
-  // Document categories
-  const categories = [
-    'Estatuto',
-    'Atas de Assembleias',
-    'Acordos Coletivos',
-    'Comunicados Oficiais',
-    'Legislação',
-    'Formulários'
-  ];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      
+      // Check if file is PDF
+      if (selectedFile.type !== 'application/pdf') {
+        toast({
+          title: 'Formato inválido',
+          description: 'Por favor, selecione um arquivo PDF.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Check file size (max 10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'Arquivo muito grande',
+          description: 'O tamanho máximo permitido é 10MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setFile(selectedFile);
+      setFilePreview(selectedFile.name);
+    }
+  };
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
+  const clearFile = () => {
+    setFile(null);
+    setFilePreview('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!file || !title || !category) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha todos os campos obrigatórios e selecione um arquivo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `documents/${fileName}`;
+      
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+      
+      if (storageError) throw storageError;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+      
+      // Save document metadata to database
+      const { data: documentData, error: dbError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            title,
+            description,
+            category,
+            file_url: publicUrl,
+            file_type: file.type,
+            file_size: file.size,
+          }
+        ])
+        .select()
+        .single();
+      
+      if (dbError) throw dbError;
+
+      // Handle recipients based on selected type
+      if (recipientType === 'all') {
+        // Send to all users - no filter needed
+        await supabase
+          .from('document_recipients')
+          .insert([
+            {
+              document_id: documentData.id,
+              recipient_type: 'all'
+            }
+          ]);
+      } else if (recipientType === 'specialty' && selectedSpecialty) {
+        // Send to specific specialty
+        await supabase
+          .from('document_recipients')
+          .insert([
+            {
+              document_id: documentData.id,
+              recipient_type: 'specialty',
+              specialty: selectedSpecialty
+            }
+          ]);
+      }
+      // Note: individual recipients would be handled here if needed
+      
+      toast({
+        title: 'Documento enviado',
+        description: 'O documento foi enviado com sucesso.',
+      });
+      
+      onOpenChange(false);
+      onUploadSuccess();
+      
+      // Reset form
+      setFile(null);
+      setFilePreview('');
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setRecipientType('all');
+      setSelectedSpecialty('');
+      
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: 'Erro no envio',
+        description: 'Não foi possível enviar o documento. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Enviar Novo Documento</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título do documento *</Label>
+            <Input 
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Digite o título do documento"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea 
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Digite uma breve descrição do documento"
+              className="min-h-[100px]"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="category">Categoria *</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="category">
+                <SelectValue placeholder="Selecione a categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {fileCategories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="recipientType">Destinatários *</Label>
+            <Select value={recipientType} onValueChange={setRecipientType}>
+              <SelectTrigger id="recipientType">
+                <SelectValue placeholder="Selecione os destinatários" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os associados</SelectItem>
+                <SelectItem value="specialty">Por especialidade</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {recipientType === 'specialty' && (
+            <div className="space-y-2">
+              <Label htmlFor="specialty">Especialidade *</Label>
+              <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                <SelectTrigger id="specialty">
+                  <SelectValue placeholder="Selecione a especialidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pml">Peritos Médicos Legais (PML)</SelectItem>
+                  <SelectItem value="pol">Peritos Odonto Legais (POL)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="file">Arquivo PDF *</Label>
+            {!filePreview ? (
+              <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md h-32">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                  <div className="text-sm text-gray-600">
+                    Clique para selecionar um arquivo PDF
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Tamanho máximo: 10MB
+                  </div>
+                  <input
+                    id="file"
+                    type="file"
+                    className="hidden"
+                    accept="application/pdf"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => document.getElementById('file')?.click()}
+                  >
+                    Selecionar arquivo
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between border rounded-md p-3">
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5 text-sindmoba-primary" />
+                  <span className="text-sm truncate max-w-[350px]">{filePreview}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFile}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? (
+                <>
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : 'Enviar Documento'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const AdminDocumentsPage = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const fetchDocuments = async () => {
     try {
@@ -90,7 +349,7 @@ const AdminDocumentsPage = () => {
       console.error('Error fetching documents:', error);
       toast({
         title: 'Erro ao carregar documentos',
-        description: 'Não foi possível carregar a lista de documentos. Tente novamente mais tarde.',
+        description: 'Não foi possível carregar a lista de documentos.',
         variant: 'destructive',
       });
     } finally {
@@ -98,423 +357,106 @@ const AdminDocumentsPage = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
+  // Fetch documents on mount
+  useState(() => {
+    fetchDocuments();
+  });
 
-  const handleCategoryChange = (value: string) => {
-    setFormData({
-      ...formData,
-      category: value,
-    });
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const openAddDialog = () => {
-    setEditingDocument(null);
-    setFormData({
-      title: '',
-      description: '',
-      category: '',
-    });
-    setFile(null);
-    setIsDialogOpen(true);
-  };
-
-  const openEditDialog = (document: Document) => {
-    setEditingDocument(document);
-    setFormData({
-      title: document.title,
-      description: document.description || '',
-      category: document.category,
-    });
-    setFile(null);
-    setIsDialogOpen(true);
-  };
-
-  const openViewDialog = (document: Document) => {
-    setViewingDocument(document);
-    setIsViewDialogOpen(true);
+  const getCategoryLabel = (categoryValue: string) => {
+    const category = fileCategories.find(cat => cat.value === categoryValue);
+    return category ? category.label : categoryValue;
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024) return bytes + ' bytes';
     else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!editingDocument && !file) {
-      toast({
-        title: 'Arquivo obrigatório',
-        description: 'Por favor, selecione um arquivo para upload.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    try {
-      setUploading(true);
-      
-      let fileUrl = editingDocument?.file_url || '';
-      let fileType = editingDocument?.file_type || '';
-      let fileSize = editingDocument?.file_size || 0;
-      
-      // Upload file if a new one is selected
-      if (file) {
-        const fileName = `${Date.now()}_${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase
-          .storage
-          .from('documents')
-          .upload(fileName, file);
-        
-        if (uploadError) throw uploadError;
-        
-        fileUrl = fileName;
-        fileType = file.type;
-        fileSize = file.size;
-      }
-      
-      if (editingDocument) {
-        // Update existing document
-        const { error } = await supabase
-          .from('documents')
-          .update({
-            title: formData.title,
-            description: formData.description || null,
-            category: formData.category,
-            ...(file ? { 
-              file_url: fileUrl, 
-              file_type: fileType, 
-              file_size: fileSize 
-            } : {}),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingDocument.id);
-
-        if (error) throw error;
-        toast({
-          title: 'Documento atualizado',
-          description: 'O documento foi atualizado com sucesso.',
-        });
-      } else {
-        // Create new document
-        const { error } = await supabase
-          .from('documents')
-          .insert({
-            title: formData.title,
-            description: formData.description || null,
-            category: formData.category,
-            file_url: fileUrl,
-            file_type: fileType,
-            file_size: fileSize,
-            created_by: (await supabase.auth.getUser()).data.user?.id,
-          });
-
-        if (error) throw error;
-        toast({
-          title: 'Documento adicionado',
-          description: 'O novo documento foi adicionado com sucesso.',
-        });
-      }
-
-      setIsDialogOpen(false);
-      fetchDocuments(); // Refresh the list
-    } catch (error) {
-      console.error('Error saving document:', error);
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar o documento. Tente novamente.',
-        variant: 'destructive',
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este documento?')) {
-      try {
-        const documentToDelete = documents.find(doc => doc.id === id);
-        
-        if (documentToDelete) {
-          // Delete from storage first
-          await supabase
-            .storage
-            .from('documents')
-            .remove([documentToDelete.file_url]);
-          
-          // Then delete from database
-          const { error } = await supabase
-            .from('documents')
-            .delete()
-            .eq('id', id);
-
-          if (error) throw error;
-          
-          // Remove document from state
-          setDocuments(documents.filter(doc => doc.id !== id));
-          
-          toast({
-            title: 'Documento excluído',
-            description: 'O documento foi excluído com sucesso.',
-          });
-        }
-      } catch (error) {
-        console.error('Error deleting document:', error);
-        toast({
-          title: 'Erro ao excluir',
-          description: 'Não foi possível excluir o documento. Tente novamente.',
-          variant: 'destructive',
-        });
-      }
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   return (
     <AdminLayout title="Gerenciamento de Documentos">
       <div className="space-y-4">
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <p className="text-gray-600">
-            Gerencie os documentos disponíveis para os membros do sindicato.
+            Gerencie os documentos disponibilizados aos associados.
           </p>
-          <Button 
-            onClick={openAddDialog}
-            className="bg-sindmoba-primary hover:bg-sindmoba-secondary"
-          >
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Documento
+          
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Enviar Documento
           </Button>
         </div>
-
+        
         {loading ? (
           <div className="text-center py-8">
             <p>Carregando documentos...</p>
           </div>
         ) : documents.length > 0 ? (
-          <div className="rounded-lg border bg-white shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">Título</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Tamanho</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.map((document) => (
-                  <TableRow key={document.id}>
-                    <TableCell className="font-medium">{document.title}</TableCell>
-                    <TableCell>{document.category}</TableCell>
-                    <TableCell>{document.file_type}</TableCell>
-                    <TableCell>{formatFileSize(document.file_size)}</TableCell>
-                    <TableCell>
-                      {document.created_at 
-                        ? new Date(document.created_at).toLocaleDateString('pt-BR')
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openViewDialog(document)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(document)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(document.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-sindmoba-danger" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="space-y-4">
+            {documents.map((document) => (
+              <div
+                key={document.id}
+                className="border rounded-lg bg-white shadow-sm p-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-medium">{document.title}</h3>
+                    {document.description && (
+                      <p className="text-sm text-gray-600">{document.description}</p>
+                    )}
+                    <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                      <span>Categoria: {getCategoryLabel(document.category)}</span>
+                      <span>•</span>
+                      <span>Tamanho: {formatFileSize(document.file_size)}</span>
+                      <span>•</span>
+                      <span>Enviado em: {formatDate(document.created_at)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 sm:mt-0 flex items-center space-x-2">
+                    <a
+                      href={document.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sindmoba-primary hover:text-sindmoba-secondary text-sm"
+                    >
+                      Visualizar
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-8 rounded-lg border bg-white shadow-sm">
-            <p>Não há documentos cadastrados.</p>
-            <Button 
-              onClick={openAddDialog}
-              variant="outline" 
-              className="mt-4"
-            >
-              <Plus className="h-4 w-4 mr-2" /> Adicionar Primeiro Documento
-            </Button>
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum documento</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Não há documentos disponíveis. Comece enviando um novo documento.
+            </p>
+            <div className="mt-6">
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Enviar Documento
+              </Button>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingDocument ? 'Editar Documento' : 'Adicionar Documento'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="grid w-full gap-2">
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Digite o título do documento"
-                  required
-                />
-              </div>
-              
-              <div className="grid w-full gap-2">
-                <Label htmlFor="description">Descrição (Opcional)</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Descreva brevemente o conteúdo do documento"
-                  className="min-h-[80px]"
-                />
-              </div>
-              
-              <div className="grid w-full gap-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={handleCategoryChange}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid w-full gap-2">
-                <Label htmlFor="file">Arquivo {!editingDocument && '(Obrigatório)'}</Label>
-                <div className="flex items-center">
-                  <Input
-                    id="file"
-                    type="file"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <div className="flex items-center w-full">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('file')?.click()}
-                      className="flex-shrink-0"
-                    >
-                      <Upload className="h-4 w-4 mr-2" /> Selecionar arquivo
-                    </Button>
-                    <span className="ml-3 text-sm text-gray-500">
-                      {file ? file.name : editingDocument ? 'Manter arquivo atual' : 'Nenhum arquivo selecionado'}
-                    </span>
-                  </div>
-                </div>
-                {editingDocument && (
-                  <p className="text-xs text-gray-500">
-                    Arquivo atual: {editingDocument.file_url.split('_').slice(1).join('_')}
-                  </p>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? 'Enviando...' : editingDocument ? 'Atualizar' : 'Adicionar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Document Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Visualizar Documento</DialogTitle>
-          </DialogHeader>
-          {viewingDocument && (
-            <div className="space-y-4 py-4">
-              <div>
-                <h3 className="font-semibold">Título</h3>
-                <p>{viewingDocument.title}</p>
-              </div>
-              {viewingDocument.description && (
-                <div>
-                  <h3 className="font-semibold">Descrição</h3>
-                  <p>{viewingDocument.description}</p>
-                </div>
-              )}
-              <div>
-                <h3 className="font-semibold">Categoria</h3>
-                <p>{viewingDocument.category}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Arquivo</h3>
-                <div className="flex items-center mt-2">
-                  <File className="h-5 w-5 mr-2 text-sindmoba-primary" />
-                  <span>{viewingDocument.file_url.split('_').slice(1).join('_')} ({formatFileSize(viewingDocument.file_size)})</span>
-                </div>
-              </div>
-              <div className="flex justify-center mt-4">
-                <Button asChild>
-                  <a 
-                    href={`${supabase.storage.from('documents').getPublicUrl(viewingDocument.file_url).data.publicUrl}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    Abrir Documento
-                  </a>
-                </Button>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Fechar</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
+      <UploadDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUploadSuccess={fetchDocuments}
+      />
     </AdminLayout>
   );
 };

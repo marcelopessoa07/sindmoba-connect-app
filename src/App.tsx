@@ -21,6 +21,7 @@ import FAQPage from "./pages/FAQPage";
 import MembershipPage from "./pages/MembershipPage";
 import FileSubmissionPage from "./pages/FileSubmissionPage";
 import ContactPage from "./pages/ContactPage";
+import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AdminDocumentsPage from "./pages/admin/AdminDocumentsPage";
 import AdminEventsPage from "./pages/admin/AdminEventsPage";
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/membership" element={<MembershipPage />} />
               <Route path="/file-submission" element={<FileSubmissionPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
