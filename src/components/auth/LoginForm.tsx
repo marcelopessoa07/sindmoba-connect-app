@@ -15,8 +15,44 @@ const LoginForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    if (loginType === 'email' && !email) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, informe seu e-mail",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (loginType === 'cpf' && !cpf) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, informe seu CPF",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!password) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, informe sua senha",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -30,13 +66,22 @@ const LoginForm = () => {
       
       if (loginType === 'cpf') {
         // Get the email associated with this CPF
+        const cpfClean = identifier.replace(/\D/g, '');
+        console.log(`Looking up email for CPF: ${cpfClean}`);
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('email')
-          .eq('cpf', identifier.replace(/\D/g, ''))
+          .eq('cpf', cpfClean)
           .single();
           
-        if (profileError || !profileData?.email) {
+        if (profileError) {
+          console.error('Error fetching profile by CPF:', profileError);
+          throw new Error('CPF não encontrado no sistema');
+        }
+        
+        if (!profileData?.email) {
+          console.error('No email found for CPF:', cpfClean);
           throw new Error('CPF não encontrado no sistema');
         }
         
@@ -45,23 +90,47 @@ const LoginForm = () => {
       }
       
       // Now sign in with the email
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase auth error:', error);
+        throw error;
+      }
+
+      if (!data.user || !data.session) {
+        throw new Error('Falha na autenticação');
+      }
 
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao SINDMOBA Connect",
       });
-      navigate('/main');
+      
+      // Add small delay to ensure toast is visible before redirect
+      setTimeout(() => {
+        navigate('/main');
+      }, 500);
+      
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Provide more user-friendly error messages
+      let errorMessage = "Verifique suas credenciais e tente novamente";
+      
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "E-mail ou senha incorretos";
+      } else if (error.message?.includes('CPF não encontrado')) {
+        errorMessage = "CPF não encontrado no sistema";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro ao fazer login",
-        description: error.message || "Verifique suas credenciais e tente novamente",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
