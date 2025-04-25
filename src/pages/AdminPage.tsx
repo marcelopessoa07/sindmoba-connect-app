@@ -19,7 +19,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Pencil, UserPlus } from 'lucide-react';
+import { Eye, Pencil, UserPlus, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,16 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -57,8 +67,10 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [viewingMember, setViewingMember] = useState<Member | null>(null);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [deletingMember, setDeletingMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     cpf: '',
@@ -117,6 +129,11 @@ const AdminPage = () => {
       role: member.role || 'member',
     });
     setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (member: Member) => {
+    setDeletingMember(member);
+    setIsDeleteDialogOpen(true);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,6 +195,34 @@ const AdminPage = () => {
       });
     }
   };
+
+  const handleDeleteMember = async () => {
+    if (!deletingMember) return;
+    
+    try {
+      // Use the edge function to delete the member
+      const { error } = await supabase.functions.invoke('delete-member', {
+        body: { user_id: deletingMember.id }
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Membro excluído',
+        description: 'O membro foi excluído com sucesso.',
+      });
+      
+      setIsDeleteDialogOpen(false);
+      fetchMembers(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error deleting member:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message || 'Não foi possível excluir o membro. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
   
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -212,6 +257,7 @@ const AdminPage = () => {
         <TabsList className="mb-4">
           <TabsTrigger value="members">Membros Cadastrados</TabsTrigger>
           <TabsTrigger value="register">Cadastrar Novo Membro</TabsTrigger>
+          <TabsTrigger value="settings">Configurações</TabsTrigger>
         </TabsList>
         
         <TabsContent value="members">
@@ -259,6 +305,13 @@ const AdminPage = () => {
                             onClick={() => openEditDialog(member)}
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(member)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -461,10 +514,37 @@ const AdminPage = () => {
               </form>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir membro</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir este membro? Esta ação não pode ser desfeita.
+                  {deletingMember && (
+                    <p className="mt-2 font-medium">{deletingMember.full_name || deletingMember.email}</p>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteMember}
+                  className="bg-red-600 text-white hover:bg-red-700"
+                >
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </TabsContent>
         
         <TabsContent value="register" id="register-tab">
           <MemberRegistration onRegistrationSuccess={fetchMembers} />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <ContactSettingsForm />
         </TabsContent>
       </Tabs>
     </AdminLayout>

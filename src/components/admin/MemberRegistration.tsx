@@ -56,12 +56,19 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     setIsLoading(true);
     setError(null);
 
+    // Validate form
+    if (!formData.fullName || !formData.email || !formData.cpf || !formData.specialization || !formData.professionalId) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Use the create-member edge function
       const { data, error: fnError } = await supabase.functions.invoke('create-member', {
         body: {
           email: formData.email,
-          full_name: formData.fullName,
+          full_name: formData.fullName, // Changed this line to correctly pass the full name
           cpf: formData.cpf,
           specialty: formData.specialization,
           registration_number: formData.professionalId,

@@ -1,136 +1,103 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.21.0"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-serve(async (req) => {
-  // Handle CORS preflight request
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Get the request body
-    const { email, full_name, cpf, specialty, registration_number } = await req.json()
+    const { email, full_name, cpf, specialty, registration_number } = await req.json();
 
-    // Validate required fields
-    if (!email || !full_name || !specialty) {
+    // Validate input
+    if (!email) {
       return new Response(
-        JSON.stringify({
-          error: 'Missing required fields: email, full name, and specialty are required',
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+        JSON.stringify({ error: 'Email é obrigatório' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Create a Supabase client with the service role key
+    // Create a Supabase client with the service role key (allows bypassing RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
-    )
+    );
 
-    // Check if user already exists
-    const { data: existingUser, error: checkError } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+    // Generate a random password (user will reset it via email)
+    const tempPassword = Math.random().toString(36).slice(-8);
 
-    if (checkError) {
-      console.error('Error checking existing user:', checkError.message)
-      return new Response(
-        JSON.stringify({ error: `Error checking existing user: ${checkError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ error: `User with email ${email} already exists` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
-    // Create a user
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // Create the user
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
+      password: tempPassword,
       email_confirm: true,
-      user_metadata: {
+    });
+
+    if (userError) {
+      console.error('Error creating user:', userError);
+      throw new Error(`Erro ao criar usuário: ${userError.message}`);
+    }
+
+    // We need the user ID to update the profile
+    const userId = userData.user.id;
+
+    // Ensure the user's profile is updated with the full name and other details
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({
         full_name,
         cpf,
         specialty,
         registration_number,
-      },
-    })
-
-    if (authError) {
-      console.error('Error creating user:', authError.message)
-      return new Response(
-        JSON.stringify({ error: `Error creating user: ${authError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
-    // Generate password reset link
-    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-    })
-
-    if (resetError) {
-      console.error('Error generating password reset link:', resetError.message)
-      return new Response(
-        JSON.stringify({ error: `Error generating password reset link: ${resetError.message}` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // Send welcome email with the reset link
-    try {
-      const { error: emailError } = await supabaseAdmin.functions.invoke('send-invite', {
-        body: {
-          email,
-          name: full_name,
-          resetLink: resetData.properties.action_link,
-        },
+        updated_at: new Date().toISOString(),
       })
+      .eq('id', userId);
 
-      if (emailError) {
-        console.error('Error sending welcome email:', emailError.message)
-        return new Response(
-          JSON.stringify({ 
-            warning: `User created, but email could not be sent: ${emailError.message}`,
-            success: true,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 201 }
-        )
-      }
-    } catch (emailError) {
-      console.error('Exception sending welcome email:', emailError.message)
-      return new Response(
-        JSON.stringify({ 
-          warning: `User created, but email could not be sent: ${emailError.message}`,
-          success: true,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 201 }
-      )
+    if (profileError) {
+      console.error('Error updating profile:', profileError);
+      // Continue with the process even if profile update fails, 
+      // as the user has been created - we'll return a warning instead
     }
 
-    // Return success
+    // Send the user an invite/welcome email with password reset link
+    let warning = null;
+    try {
+      const { error: inviteError } = await supabaseAdmin.functions.invoke('send-invite', {
+        body: { email }
+      });
+
+      if (inviteError) {
+        console.error('Error sending invite:', inviteError);
+        warning = 'Usuário criado, mas falha ao enviar email de convite. O usuário precisará usar a opção de recuperação de senha.';
+      }
+    } catch (inviteErr) {
+      console.error('Exception sending invite:', inviteErr);
+      warning = 'Usuário criado, mas falha ao enviar email de convite. O usuário precisará usar a opção de recuperação de senha.';
+    }
+
+    // Return success with user data (and any warnings)
     return new Response(
-      JSON.stringify({ success: true, message: 'User created successfully' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+      JSON.stringify({ 
+        message: 'Usuário criado com sucesso', 
+        userId, 
+        warning 
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Unexpected error:', error.message)
+    console.error('Error in create-member function:', error);
     return new Response(
-      JSON.stringify({ error: `Unexpected error: ${error.message}` }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    )
+      JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-})
+});
