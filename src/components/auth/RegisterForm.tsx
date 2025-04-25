@@ -104,6 +104,16 @@ const RegisterForm = () => {
 
   return (
     <div className="mx-auto w-full max-w-md p-6">
+      <div className="mb-6 flex justify-center">
+        <div className="h-24 w-24">
+          <img 
+            src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+            alt="SINDMOBA Logo" 
+            className="w-full h-full object-contain"
+          />
+        </div>
+      </div>
+      
       <h1 className="mb-2 text-center text-2xl font-bold text-sindmoba-dark">
         Filiação ao Sindicato
       </h1>

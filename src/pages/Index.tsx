@@ -23,7 +23,6 @@ const Index = () => {
     return () => clearTimeout(timeoutId);
   }, [loading, navigate]);
 
-  // Show a loading indicator if auth is still initializing
   if (loading) {
     console.log('Rendering loading spinner while auth initializes');
     return (

@@ -53,18 +53,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         console.log('Initializing auth...');
+        
         // Set up auth state listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             console.log('Auth state change event:', event);
-            setSession(currentSession);
-            setUser(currentSession?.user ?? null);
             
-            if (currentSession?.user) {
+            if (currentSession) {
+              setSession(currentSession);
+              setUser(currentSession.user);
+              
               const userProfile = await fetchProfile(currentSession.user.id);
-              console.log('User profile from auth change:', userProfile);
               setProfile(userProfile);
+              console.log('User profile from auth change:', userProfile);
             } else {
+              setSession(null);
+              setUser(null);
               setProfile(null);
             }
           }
@@ -77,13 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Error getting auth session:', error);
         } else {
           console.log('Session check complete:', data.session ? 'session found' : 'no session');
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
           
-          if (data.session?.user) {
+          if (data.session) {
+            setSession(data.session);
+            setUser(data.session.user);
+            
             const userProfile = await fetchProfile(data.session.user.id);
-            console.log('User profile from session check:', userProfile);
             setProfile(userProfile);
+            console.log('User profile from session check:', userProfile);
           }
         }
         
@@ -106,7 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('Signing out...');
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error signing out:', error);
+      } else {
+        console.log('Sign out successful');
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }
