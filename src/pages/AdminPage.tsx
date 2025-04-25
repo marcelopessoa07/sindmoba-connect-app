@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import MemberRegistration from '@/components/admin/MemberRegistration';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -38,6 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+type SpecialtyType = 'pml' | 'pol' | '';
+
 interface Member {
   id: string;
   email: string;
@@ -45,7 +46,7 @@ interface Member {
   cpf: string | null;
   phone: string | null;
   role: string | null;
-  specialty: string | null;
+  specialty: SpecialtyType | null;
   registration_number: string | null;
   created_at: string | null;
 }
@@ -62,13 +63,13 @@ const AdminPage = () => {
     cpf: '',
     phone: '',
     registration_number: '',
-    specialty: '',
+    specialty: '' as SpecialtyType,
     role: '',
   });
   const { toast } = useToast();
   
   const roles = ["admin", "member"];
-  const specialties = ["pml", "pol"];
+  const specialties = ["pml", "pol"] as const;
   
   useEffect(() => {
     fetchMembers();
@@ -126,10 +127,17 @@ const AdminPage = () => {
   };
   
   const handleSelectChange = (field: string, value: string) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
+    if (field === 'specialty') {
+      setFormData({
+        ...formData,
+        specialty: value as SpecialtyType,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [field]: value,
+      });
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,7 +279,6 @@ const AdminPage = () => {
             )}
           </div>
           
-          {/* View Member Dialog */}
           <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
@@ -340,7 +347,6 @@ const AdminPage = () => {
             </DialogContent>
           </Dialog>
           
-          {/* Edit Member Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>

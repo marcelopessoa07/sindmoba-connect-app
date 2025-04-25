@@ -3,10 +3,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-const MemberRegistration = () => {
+interface MemberRegistrationProps {
+  onRegistrationSuccess?: () => void;
+}
+
+const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -91,6 +95,11 @@ const MemberRegistration = () => {
         specialization: '',
         professionalId: '',
       });
+      
+      // Call the success callback if provided
+      if (onRegistrationSuccess) {
+        onRegistrationSuccess();
+      }
     } catch (error: any) {
       toast({
         title: "Erro no cadastro",
