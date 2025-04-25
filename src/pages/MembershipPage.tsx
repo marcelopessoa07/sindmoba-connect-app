@@ -139,6 +139,7 @@ const MembershipPage = () => {
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Dados Pessoais */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">Dados Pessoais</h3>
           
@@ -199,6 +200,7 @@ const MembershipPage = () => {
           </div>
         </div>
         
+        {/* Endereço */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">Endereço</h3>
           
@@ -274,6 +276,7 @@ const MembershipPage = () => {
           </div>
         </div>
         
+        {/* Dados Profissionais */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">Dados Profissionais</h3>
           

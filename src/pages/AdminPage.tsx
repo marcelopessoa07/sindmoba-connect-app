@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import MemberRegistration from '@/components/admin/MemberRegistration';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -405,7 +406,7 @@ const AdminPage = () => {
                               <SelectValue placeholder="Selecione a especialidade" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Não especificado</SelectItem>
+                              <SelectItem value="none">Não especificado</SelectItem>
                               {specialties.map((specialty) => (
                                 <SelectItem key={specialty} value={specialty}>
                                   {getSpecialtyLabel(specialty)}
