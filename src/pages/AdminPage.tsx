@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import MemberRegistration from '@/components/admin/MemberRegistration';
 import AdminLayout from '@/components/admin/AdminLayout';
 import ContactSettingsForm from '@/components/admin/ContactSettingsForm';
+import PendingRegistrationsPage from '@/pages/admin/PendingRegistrationsPage';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {

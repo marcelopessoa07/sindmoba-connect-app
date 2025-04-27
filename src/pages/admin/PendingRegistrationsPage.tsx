@@ -13,8 +13,19 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
+// Define a proper type for our pending users
+interface PendingUser {
+  id: string;
+  full_name: string | null;
+  email: string;
+  cpf: string | null;
+  specialty: string | null;
+  created_at: string | null;
+  status: string;
+}
+
 const PendingRegistrationsPage = () => {
-  const [pendingUsers, setPendingUsers] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -44,11 +55,12 @@ const PendingRegistrationsPage = () => {
     }
   };
 
-  const handleApprove = async (userId) => {
+  const handleApprove = async (userId: string) => {
     try {
+      // Update the status in the profiles table
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' })
+        .update({ status: 'active' }) // This field needs to exist in the profiles table
         .eq('id', userId);
 
       if (updateError) throw updateError;
@@ -106,7 +118,7 @@ const PendingRegistrationsPage = () => {
                        'Não informado'}
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                      {new Date(user.created_at || '').toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
