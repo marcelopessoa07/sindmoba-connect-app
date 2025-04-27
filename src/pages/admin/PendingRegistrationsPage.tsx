@@ -19,7 +19,7 @@ interface ProfileData {
   full_name: string | null;
   email: string;
   cpf: string | null;
-  specialty: string | null;
+  specialty: 'pml' | 'pol' | null;
   created_at: string | null;
   role: string | null;
   phone: string | null;
