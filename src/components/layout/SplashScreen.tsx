@@ -48,7 +48,7 @@ const SplashScreen = () => {
           <img 
             src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
             alt="SINDMOBA Logo" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain max-w-[300px]" 
           />
         </div>
         

@@ -102,8 +102,12 @@ const MainPage = () => {
           </p>
         </div>
         <div className="h-12 w-12 rounded-full bg-sindmoba-primary p-1">
-          <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-lg font-bold text-sindmoba-primary">
-            {profile?.full_name ? profile.full_name.charAt(0) : 'A'}
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+            <img 
+              src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+              alt="SINDMOBA Logo" 
+              className="max-w-full max-h-full object-contain" 
+            />
           </div>
         </div>
       </div>
