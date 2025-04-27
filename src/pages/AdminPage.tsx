@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import MemberRegistration from '@/components/admin/MemberRegistration';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -269,6 +268,7 @@ const AdminPage = () => {
       <Tabs defaultValue="members">
         <TabsList className="mb-4">
           <TabsTrigger value="members">Membros Cadastrados</TabsTrigger>
+          <TabsTrigger value="pending">Solicitações Pendentes</TabsTrigger>
           <TabsTrigger value="register">Cadastrar Novo Membro</TabsTrigger>
           <TabsTrigger value="settings">Configurações</TabsTrigger>
         </TabsList>
@@ -552,7 +552,11 @@ const AdminPage = () => {
           </AlertDialog>
         </TabsContent>
         
-        <TabsContent value="register" id="register-tab">
+        <TabsContent value="pending">
+          <PendingRegistrationsPage />
+        </TabsContent>
+        
+        <TabsContent value="register">
           <MemberRegistration onRegistrationSuccess={fetchMembers} />
         </TabsContent>
 

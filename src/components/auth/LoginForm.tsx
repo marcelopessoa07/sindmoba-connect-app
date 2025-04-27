@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -56,16 +55,13 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // Use the appropriate identifier based on login type
       const identifier = loginType === 'email' ? email : cpf;
       
       console.log(`Attempting login with: ${identifier} and password`);
       
-      // For CPF login, we need to find the user's email first
       let emailToUse = identifier;
       
       if (loginType === 'cpf') {
-        // Get the email associated with this CPF
         const cpfClean = identifier.replace(/\D/g, '');
         console.log(`Looking up email for CPF: ${cpfClean}`);
         
@@ -89,7 +85,6 @@ const LoginForm = () => {
         console.log(`Found email ${emailToUse} for CPF ${identifier}`);
       }
       
-      // Now sign in with the email
       const { data, error } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password,
@@ -109,7 +104,6 @@ const LoginForm = () => {
         description: "Bem-vindo ao SINDMOBA Connect",
       });
       
-      // Add small delay to ensure toast is visible before redirect
       setTimeout(() => {
         navigate('/main');
       }, 500);
@@ -117,7 +111,6 @@ const LoginForm = () => {
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Provide more user-friendly error messages
       let errorMessage = "Verifique suas credenciais e tente novamente";
       
       if (error.message?.includes('Invalid login credentials')) {
@@ -157,8 +150,8 @@ const LoginForm = () => {
 
   return (
     <div className="mx-auto w-full max-w-md p-6">
-      <div className="mb-6 flex justify-center">
-        <div className="h-24 w-24">
+      <div className="mb-8 flex justify-center">
+        <div className="h-40 w-40">
           <img 
             src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
             alt="SINDMOBA Logo" 
