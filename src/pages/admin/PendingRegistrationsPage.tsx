@@ -13,19 +13,24 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a proper type for our pending users
-interface PendingUser {
+// Define a type that matches the actual data we get from Supabase
+interface ProfileData {
   id: string;
   full_name: string | null;
   email: string;
   cpf: string | null;
   specialty: string | null;
   created_at: string | null;
-  status: string;
+  role: string | null;
+  phone: string | null;
+  registration_number: string | null;
+  address: string | null;
+  updated_at: string | null;
+  status: string | null;
 }
 
 const PendingRegistrationsPage = () => {
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<ProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -60,7 +65,7 @@ const PendingRegistrationsPage = () => {
       // Update the status in the profiles table
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' }) // This field needs to exist in the profiles table
+        .update({ status: 'active' })
         .eq('id', userId);
 
       if (updateError) throw updateError;
