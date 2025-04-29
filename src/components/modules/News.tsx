@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Spinner } from '@/components/ui/spinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NewsArticle {
   id: string;
@@ -11,15 +12,25 @@ interface NewsArticle {
   summary: string;
   published_at: string;
   image_url?: string;
+  notify_target?: string;
 }
 
 const News = () => {
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchNews = async () => {
       try {
+        const { data: profile } = user ? await supabase
+          .from('profiles')
+          .select('specialty')
+          .eq('id', user.id)
+          .single() : { data: null };
+          
+        const userSpecialty = profile?.specialty || null;
+
         const { data, error } = await supabase
           .from('news')
           .select('*')
@@ -30,7 +41,18 @@ const News = () => {
           return;
         }
 
-        setNewsArticles(data || []);
+        // Filter news based on user specialty if applicable
+        const filteredNews = data?.filter(newsItem => {
+          if (!newsItem.notify_target || newsItem.notify_target === 'all') {
+            return true;
+          }
+          if (!userSpecialty) {
+            return false;
+          }
+          return newsItem.notify_target === userSpecialty;
+        }) || [];
+
+        setNewsArticles(filteredNews);
       } catch (error) {
         console.error('Error in news fetch:', error);
       } finally {
@@ -39,7 +61,7 @@ const News = () => {
     };
 
     fetchNews();
-  }, []);
+  }, [user]);
 
   // Format date from ISO to DD/MM/YYYY
   const formatDate = (isoDate: string) => {
