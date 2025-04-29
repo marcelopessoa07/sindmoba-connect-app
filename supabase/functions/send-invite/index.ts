@@ -43,6 +43,21 @@ serve(async (req) => {
       );
     }
     
+    // Make sure the API key is valid and not empty
+    if (resendApiKey.trim() === '') {
+      console.error('RESEND_API_KEY is empty');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Email service API key is empty. Please provide a valid RESEND_API_KEY.',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
+    
     const resend = new Resend(resendApiKey);
     
     // Create Supabase client with admin rights to generate password reset link
@@ -126,7 +141,8 @@ serve(async (req) => {
     
     try {
       // Send email with password reset link
-      const { data, error } = await resend.emails.send({
+      console.log('Attempting to send email with Resend API');
+      const emailResult = await resend.emails.send({
         from: 'SINDMOBA <contato@sindmoba.org.br>',
         to: [email],
         subject: 'Bem-vindo ao SINDMOBA - Configure sua senha',
@@ -140,11 +156,11 @@ serve(async (req) => {
         `,
       });
 
-      if (error) {
-        console.error('Resend API error:', error);
+      if (emailResult.error) {
+        console.error('Resend API error:', emailResult.error);
         return new Response(
           JSON.stringify({ 
-            error: `Erro no serviço de email: ${error.message}`,
+            error: `Erro no serviço de email: ${emailResult.error.message}`,
             success: false 
           }),
           {
@@ -166,7 +182,7 @@ serve(async (req) => {
       console.error('Error sending email:', emailError);
       return new Response(
         JSON.stringify({ 
-          error: `Erro ao enviar email: ${emailError.message}`,
+          error: `Erro ao enviar email: ${emailError.message || 'Unknown error'}`,
           success: false 
         }),
         {
