@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Mail, Users } from 'lucide-react';
+import { Calendar, File, Book, List, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,20 +65,6 @@ const MainPage = () => {
       icon: List,
       color: '#2c3e50',
       description: 'Respostas para as dúvidas mais comuns'
-    },
-    { 
-      title: 'Filiação ao Sindicato', 
-      path: '/membership', 
-      icon: Users,
-      color: '#e74c3c',
-      description: 'Processo para novos associados'
-    },
-    { 
-      title: 'Envio de Arquivos', 
-      path: '/file-submission', 
-      icon: File,
-      color: '#16a085',
-      description: 'Envie documentos para análise do sindicato'
     },
     { 
       title: 'Contato e Atendimento', 

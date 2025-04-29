@@ -6,7 +6,6 @@ import {
   Book, 
   List, 
   Mail, 
-  Users, 
   User,
   Shield
 } from 'lucide-react';
@@ -42,8 +41,6 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
     { title: 'Perguntas Frequentes', path: '/faq', icon: List },
-    { title: 'Filiação ao Sindicato', path: '/membership', icon: Users },
-    { title: 'Envio de Arquivos', path: '/file-submission', icon: File },
     { title: 'Contato e Atendimento', path: '/contact', icon: Mail }
   ];
 
