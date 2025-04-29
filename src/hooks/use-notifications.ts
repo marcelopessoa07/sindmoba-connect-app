@@ -88,6 +88,7 @@ export const useNotifications = () => {
             table: 'news'
           },
           (payload) => {
+            console.log('New news detected:', payload.new);
             // Check if this notification is for this user based on specialty
             if (shouldDeliverNotification(userSpecialty, payload.new.notify_target)) {
               notifyNewNews(payload.new.title);
@@ -106,6 +107,7 @@ export const useNotifications = () => {
             table: 'events'
           },
           (payload) => {
+            console.log('New event detected:', payload.new);
             // The notify_target property is now available on the events table
             if (shouldDeliverNotification(userSpecialty, payload.new.notify_target)) {
               const eventDate = format(

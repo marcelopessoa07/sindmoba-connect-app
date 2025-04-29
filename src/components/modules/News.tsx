@@ -53,6 +53,9 @@ const News = () => {
         }) || [];
 
         setNewsArticles(filteredNews);
+        
+        // Log the number of news articles for debugging
+        console.log(`Fetched ${filteredNews.length} news articles`);
       } catch (error) {
         console.error('Error in news fetch:', error);
       } finally {
