@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,6 @@ import {
   Users, 
   HelpCircle, 
   Newspaper,
-  Folder,
   Mail
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -88,7 +86,6 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { title: 'Documentos', icon: FileText, path: '/admin/documents' },
     { title: 'Eventos', icon: CalendarDays, path: '/admin/events' },
     { title: 'Notícias', icon: Newspaper, path: '/admin/news' },
-    { title: 'Arquivos Enviados', icon: Folder, path: '/admin/submissions' },
     { title: 'Gerenciamento de Contatos', icon: Mail, path: '/admin/contacts' },
     { title: 'FAQ', icon: HelpCircle, path: '/admin/faq' },
   ];
