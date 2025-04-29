@@ -106,7 +106,7 @@ export const useNotifications = () => {
             table: 'events'
           },
           (payload) => {
-            // Check if this notification is for this user based on specialty
+            // The notify_target property is now available on the events table
             if (shouldDeliverNotification(userSpecialty, payload.new.notify_target)) {
               const eventDate = format(
                 parseISO(payload.new.start_date), 
@@ -132,7 +132,7 @@ export const useNotifications = () => {
         
         if (events && events.length > 0) {
           events.forEach(event => {
-            // Check if this reminder is for this user based on specialty
+            // The notify_target property is now available on the events table
             if (shouldDeliverNotification(userSpecialty, event.notify_target)) {
               const eventDate = parseISO(event.start_date);
               const formattedDate = format(eventDate, "dd 'de' MMMM 'às' HH:mm", { locale: pt });

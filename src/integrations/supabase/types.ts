@@ -122,6 +122,7 @@ export type Database = {
           event_type: string
           id: string
           location: string | null
+          notify_target: string | null
           start_date: string
           title: string
           updated_at: string | null
@@ -134,6 +135,7 @@ export type Database = {
           event_type: string
           id?: string
           location?: string | null
+          notify_target?: string | null
           start_date: string
           title: string
           updated_at?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           event_type?: string
           id?: string
           location?: string | null
+          notify_target?: string | null
           start_date?: string
           title?: string
           updated_at?: string | null
