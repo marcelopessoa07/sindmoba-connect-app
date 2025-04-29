@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,12 +107,9 @@ const FileSubmissionPage = () => {
       
       console.log("Bucket created successfully:", data);
       
-      // Create RLS policies for the bucket
-      // This is done via SQL migrations separately
-      
-      // Update storage policies for the bucket to allow authenticated uploads
+      // Fix: Properly type the bucket_name parameter for RPC call
       const { error: policyError } = await supabase
-        .rpc('create_storage_policies', { bucket_name: 'member-submissions' });
+        .rpc('create_storage_policies', { bucket_name_param: 'member-submissions' });
         
       if (policyError) {
         console.error("Error creating RLS policies:", policyError);

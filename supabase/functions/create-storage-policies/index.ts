@@ -35,9 +35,9 @@ serve(async (req: Request) => {
     }
 
     // Get the bucket name from the request
-    const { bucket_name } = await req.json()
+    const { bucket_name_param } = await req.json()
     
-    if (!bucket_name) {
+    if (!bucket_name_param) {
       return new Response(
         JSON.stringify({ error: 'Bucket name is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,13 +58,13 @@ serve(async (req: Request) => {
 
     // Create SQL function and policies for the bucket
     const { error } = await supabaseAdmin.rpc('create_storage_policies_for_bucket', {
-      bucket_name_param: bucket_name
+      bucket_name_param
     })
 
     if (error) throw error
 
     return new Response(
-      JSON.stringify({ success: true, message: `Storage policies created successfully for ${bucket_name}` }),
+      JSON.stringify({ success: true, message: `Storage policies created successfully for ${bucket_name_param}` }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
