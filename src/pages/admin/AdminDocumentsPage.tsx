@@ -33,8 +33,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Clock, X, Eye, Download, Trash2 } from 'lucide-react';
+import { FileText, Upload, Clock, X, Eye, Download, Trash2, Check, Search } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage 
+} from '@/components/ui/form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type SpecialtyType = Database["public"]["Enums"]["specialty_type"];
 
@@ -52,6 +66,13 @@ interface UploadDialogProps {
   onUploadSuccess: () => void;
 }
 
+type UserProfile = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  specialty: string | null;
+};
+
 const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -61,7 +82,45 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
   const [category, setCategory] = useState('');
   const [recipientType, setRecipientType] = useState('all'); // 'all', 'specialty', 'individual'
   const [selectedSpecialty, setSelectedSpecialty] = useState<SpecialtyType | ''>('');
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+
+  // Fetch users when recipientType is set to 'individual'
+  useEffect(() => {
+    if (recipientType === 'individual') {
+      fetchUserProfiles();
+    }
+  }, [recipientType]);
+
+  const fetchUserProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, specialty')
+        .order('full_name');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setUserProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching user profiles:', error);
+      toast({
+        title: 'Erro ao carregar usuários',
+        description: 'Não foi possível obter a lista de usuários.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const filteredUsers = searchTerm 
+    ? userProfiles.filter(user => 
+        (user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+         user.email.toLowerCase().includes(searchTerm.toLowerCase())))
+    : userProfiles;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -97,6 +156,14 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     setFilePreview('');
   };
 
+  const toggleUserSelection = (userId: string) => {
+    if (selectedUserIds.includes(userId)) {
+      setSelectedUserIds(selectedUserIds.filter(id => id !== userId));
+    } else {
+      setSelectedUserIds([...selectedUserIds, userId]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -104,6 +171,15 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
       toast({
         title: 'Campos obrigatórios',
         description: 'Por favor, preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (recipientType === 'individual' && selectedUserIds.length === 0) {
+      toast({
+        title: 'Nenhum destinatário selecionado',
+        description: 'Por favor, selecione pelo menos um usuário como destinatário.',
         variant: 'destructive',
       });
       return;
@@ -179,8 +255,20 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           });
           
         if (error) throw error;
+      } else if (recipientType === 'individual' && selectedUserIds.length > 0) {
+        // Send to individual users
+        const recipientInserts = selectedUserIds.map(userId => ({
+          document_id: documentData.id,
+          recipient_type: 'individual',
+          recipient_id: userId
+        }));
+        
+        const { error } = await supabase
+          .from('document_recipients')
+          .insert(recipientInserts);
+          
+        if (error) throw error;
       }
-      // Note: individual recipients would be handled here if needed
       
       toast({
         title: 'Documento enviado',
@@ -198,6 +286,8 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
       setCategory('');
       setRecipientType('all');
       setSelectedSpecialty('');
+      setSelectedUserIds([]);
+      setSearchTerm('');
       
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -213,7 +303,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Enviar Novo Documento</DialogTitle>
         </DialogHeader>
@@ -266,6 +356,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
               <SelectContent>
                 <SelectItem value="all">Todos os associados</SelectItem>
                 <SelectItem value="specialty">Por especialidade</SelectItem>
+                <SelectItem value="individual">Usuários específicos</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -289,6 +380,59 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                   <SelectItem value="pol">Peritos Odonto Legais (POL)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          )}
+          
+          {recipientType === 'individual' && (
+            <div className="space-y-2 border rounded-md p-4">
+              <Label htmlFor="user-search">Selecione os usuários</Label>
+              <div className="flex items-center space-x-2 mb-2">
+                <Search className="h-4 w-4 text-gray-500" />
+                <Input
+                  id="user-search"
+                  placeholder="Buscar por nome ou email"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="text-sm text-muted-foreground mb-2">
+                {selectedUserIds.length} usuário(s) selecionado(s)
+              </div>
+              
+              <ScrollArea className="h-[200px] rounded-md border">
+                {filteredUsers.length > 0 ? (
+                  <div className="space-y-1 p-2">
+                    {filteredUsers.map((user) => (
+                      <div 
+                        key={user.id}
+                        className={`flex items-center justify-between p-2 rounded-md ${
+                          selectedUserIds.includes(user.id) ? 'bg-muted' : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => toggleUserSelection(user.id)}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{user.full_name || 'Sem nome'}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                          {user.specialty && (
+                            <div className="text-xs text-muted-foreground">
+                              Especialidade: {user.specialty === 'pml' ? 'PML' : 'POL'}
+                            </div>
+                          )}
+                        </div>
+                        <Checkbox 
+                          checked={selectedUserIds.includes(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground p-4">
+                    Nenhum usuário encontrado
+                  </div>
+                )}
+              </ScrollArea>
             </div>
           )}
           
