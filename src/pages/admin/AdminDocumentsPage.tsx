@@ -548,18 +548,38 @@ const AdminDocumentsPage = () => {
       setSelectedDocument(document);
       
       if (document.file_url) {
-        // Generate a temporary URL for file viewing/downloading
-        const fileUrl = document.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', '');
-        const { data, error } = await supabase
-          .storage
-          .from('documents')
-          .createSignedUrl(fileUrl, 60);
-        
-        if (error) {
-          throw error;
+        try {
+          // Extract the file path from the URL
+          const storageFilePathRegex = /\/storage\/v1\/object\/public\/documents\/(.*)/;
+          const match = document.file_url.match(storageFilePathRegex);
+          
+          if (!match || !match[1]) {
+            throw new Error('Invalid file URL format');
+          }
+          
+          const filePath = match[1];
+          
+          // Generate a temporary URL for file viewing/downloading
+          const { data, error } = await supabase
+            .storage
+            .from('documents')
+            .createSignedUrl(filePath, 60);
+          
+          if (error) {
+            throw error;
+          }
+          
+          setDocumentUrl(data?.signedUrl || document.file_url);
+        } catch (storageError) {
+          console.error('Error generating document URL:', storageError);
+          setDocumentUrl('');
+          
+          toast({
+            title: 'Erro ao gerar URL do documento',
+            description: 'Não foi possível visualizar o documento.',
+            variant: 'destructive',
+          });
         }
-        
-        setDocumentUrl(data?.signedUrl || document.file_url);
       } else {
         setDocumentUrl('');
       }

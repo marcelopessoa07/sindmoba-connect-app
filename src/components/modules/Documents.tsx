@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
@@ -177,19 +178,27 @@ const Documents = () => {
       
       if (document.file_url) {
         try {
+          // Extract the file path from the URL
+          const storageFilePathRegex = /\/storage\/v1\/object\/public\/documents\/(.*)/;
+          const match = document.file_url.match(storageFilePathRegex);
+          
+          if (!match || !match[1]) {
+            throw new Error('Invalid file URL format');
+          }
+          
+          const filePath = match[1];
+          
           // Generate a temporary URL for file viewing/downloading
           const { data, error } = await supabase
             .storage
             .from('documents')
-            .createSignedUrl(document.file_url, 60);
+            .createSignedUrl(filePath, 60);
           
           if (error) {
             console.error('Storage error:', error);
             setDocumentUrl('');
-            // Show the dialog even if we can't get a URL
             setIsDialogOpen(true);
             
-            // Display a toast notification
             toast({
               title: "Erro ao acessar o documento",
               description: "Não foi possível gerar o link para visualização. O documento pode não existir no storage.",
@@ -203,6 +212,12 @@ const Documents = () => {
         } catch (storageError) {
           console.error('Error generating document URL:', storageError);
           setDocumentUrl('');
+          
+          toast({
+            title: "Erro ao processar documento",
+            description: "Ocorreu um erro ao tentar gerar o link para o documento.",
+            variant: "destructive",
+          });
         }
       } else {
         setDocumentUrl('');
