@@ -227,6 +227,39 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_system_message: boolean
+          read_at: string | null
+          recipient_id: string
+          sender_id: string | null
+          subject: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          read_at?: string | null
+          recipient_id: string
+          sender_id?: string | null
+          subject: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_system_message?: boolean
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string

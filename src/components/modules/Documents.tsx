@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
@@ -49,19 +48,30 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR', options);
 };
 
+interface Message {
+  id: string;
+  sender_id: string | null;
+  recipient_id: string;
+  subject: string;
+  content: string;
+  created_at: string;
+  read_at: string | null;
+  is_system_message: boolean;
+}
+
 const Documents = () => {
   const [documents, setDocuments] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [documentUrl, setDocumentUrl] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [messageToDelete, setMessageToDelete] = useState<any>(null);
+  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -140,12 +150,13 @@ const Documents = () => {
       setLoadingMessages(true);
       
       if (!user) return;
-      
+
+      // Fetch messages using a raw query to avoid TypeScript errors
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: Message[] | null, error: any };
       
       if (error) {
         throw error;
@@ -193,7 +204,7 @@ const Documents = () => {
     }
   };
 
-  const viewMessage = (message: any) => {
+  const viewMessage = (message: Message) => {
     setSelectedMessage(message);
     setIsMessageDialogOpen(true);
     
@@ -205,10 +216,11 @@ const Documents = () => {
 
   const updateMessageReadStatus = async (messageId: string) => {
     try {
+      // Use a raw query to avoid TypeScript errors since the table was just created
       const { error } = await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
-        .eq('id', messageId);
+        .eq('id', messageId) as { error: any };
       
       if (error) {
         throw error;
@@ -223,7 +235,7 @@ const Documents = () => {
     }
   };
 
-  const openDeleteDialog = (message: any) => {
+  const openDeleteDialog = (message: Message) => {
     setMessageToDelete(message);
     setIsDeleteDialogOpen(true);
   };
@@ -232,10 +244,11 @@ const Documents = () => {
     if (!messageToDelete) return;
 
     try {
+      // Use a raw query to avoid TypeScript errors since the table was just created
       const { error } = await supabase
         .from('messages')
         .delete()
-        .eq('id', messageToDelete.id);
+        .eq('id', messageToDelete.id) as { error: any };
 
       if (error) {
         throw error;
@@ -297,7 +310,7 @@ const Documents = () => {
     { id: 'messages', label: 'Mensagens' }
   ];
 
-  const isUnread = (message: any) => {
+  const isUnread = (message: Message) => {
     return !message.read_at;
   };
 
@@ -549,7 +562,7 @@ const Documents = () => {
                 size="sm"
                 onClick={() => {
                   setIsMessageDialogOpen(false);
-                  openDeleteDialog(selectedMessage);
+                  openDeleteDialog(selectedMessage!);
                 }}
               >
                 <Trash2 className="mr-1 h-4 w-4" />
