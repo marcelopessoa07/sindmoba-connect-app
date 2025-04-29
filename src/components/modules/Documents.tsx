@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { FileText, Download, Eye } from 'lucide-react';
+import { FileText, Download, Eye, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import {
 
 // Function to format file size
 const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return 'N/A';
   if (bytes < 1024) return bytes + ' bytes';
   else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
   else return (bytes / 1048576).toFixed(1) + ' MB';
@@ -107,18 +108,24 @@ const Documents = () => {
 
   const viewDocument = async (document: any) => {
     try {
-      // Generate a temporary URL for file viewing/downloading
-      const { data, error } = await supabase
-        .storage
-        .from('documents')
-        .createSignedUrl(document.file_url, 60);
+      setSelectedDocument(document);
       
-      if (error) {
-        throw error;
+      if (document.file_url) {
+        // Generate a temporary URL for file viewing/downloading
+        const { data, error } = await supabase
+          .storage
+          .from('documents')
+          .createSignedUrl(document.file_url, 60);
+        
+        if (error) {
+          throw error;
+        }
+        
+        setDocumentUrl(data?.signedUrl || '');
+      } else {
+        setDocumentUrl('');
       }
       
-      setDocumentUrl(data?.signedUrl || '');
-      setSelectedDocument(document);
       setIsDialogOpen(true);
       
       // Record document view in recipients table if applicable
@@ -210,8 +217,12 @@ const Documents = () => {
                       )}
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
                         <span>{getCategoryLabel(doc.category)}</span>
-                        <span>•</span>
-                        <span>{formatFileSize(doc.file_size)}</span>
+                        {doc.file_size > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{formatFileSize(doc.file_size)}</span>
+                          </>
+                        )}
                         <span>•</span>
                         <span>Publicado em: {formatDate(doc.created_at)}</span>
                       </div>
@@ -225,8 +236,17 @@ const Documents = () => {
                       className="flex items-center"
                       onClick={() => viewDocument(doc)}
                     >
-                      <Eye className="mr-1 h-4 w-4" />
-                      <span>Visualizar</span>
+                      {doc.file_url ? (
+                        <>
+                          <Eye className="mr-1 h-4 w-4" />
+                          <span>Visualizar</span>
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="mr-1 h-4 w-4" />
+                          <span>Ver detalhes</span>
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -251,26 +271,39 @@ const Documents = () => {
           </DialogHeader>
           
           <div className="mt-4">
-            {documentUrl && (
+            {selectedDocument && (
               <div className="flex flex-col items-center justify-center">
-                {selectedDocument?.file_type.includes('pdf') ? (
+                {selectedDocument.description && (
+                  <p className="mb-4 text-gray-600">{selectedDocument.description}</p>
+                )}
+                
+                {documentUrl && selectedDocument?.file_type?.includes('pdf') ? (
                   <iframe 
                     src={`${documentUrl}#toolbar=0`}
                     className="w-full h-[500px] border rounded"
                     title={selectedDocument?.title}
                   />
-                ) : (
+                ) : documentUrl ? (
                   <p className="mb-4 text-center">
                     Este tipo de arquivo não pode ser pré-visualizado.
                   </p>
+                ) : (
+                  <div className="text-center p-4">
+                    <p className="mb-2">Este é um documento sem arquivo anexado.</p>
+                    <p className="text-sm text-gray-500">
+                      Contate o administrador para mais informações.
+                    </p>
+                  </div>
                 )}
                 
-                <Button asChild className="mt-4">
-                  <a href={documentUrl} download={selectedDocument?.title} target="_blank" rel="noreferrer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Baixar Arquivo
-                  </a>
-                </Button>
+                {documentUrl && (
+                  <Button asChild className="mt-4">
+                    <a href={documentUrl} download={selectedDocument?.title} target="_blank" rel="noreferrer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Baixar Arquivo
+                    </a>
+                  </Button>
+                )}
               </div>
             )}
           </div>

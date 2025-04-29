@@ -87,10 +87,10 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file || !title || !category) {
+    if (!title || !category) {
       toast({
         title: 'Campos obrigatórios',
-        description: 'Por favor, preencha todos os campos obrigatórios e selecione um arquivo.',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
         variant: 'destructive',
       });
       return;
@@ -99,21 +99,32 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     setIsUploading(true);
     
     try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `documents/${fileName}`;
+      let filePath = '';
+      let fileSize = 0;
+      let fileType = '';
+      let publicUrl = '';
       
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
-      
-      if (storageError) throw storageError;
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
+      // Upload file to Supabase Storage if provided
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        filePath = `documents/${fileName}`;
+        
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file);
+        
+        if (storageError) throw storageError;
+        
+        // Get the public URL
+        const { data: { publicUrl: uploadedUrl } } = supabase.storage
+          .from('documents')
+          .getPublicUrl(filePath);
+          
+        publicUrl = uploadedUrl;
+        fileSize = file.size;
+        fileType = file.type;
+      }
       
       // Save document metadata to database
       const { data: documentData, error: dbError } = await supabase
@@ -123,9 +134,9 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
             title,
             description,
             category,
-            file_url: publicUrl,
-            file_type: file.type,
-            file_size: file.size,
+            file_url: file ? publicUrl : '',
+            file_type: file ? fileType : '',
+            file_size: file ? fileSize : 0,
           }
         ])
         .select()
@@ -269,7 +280,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="file">Arquivo PDF *</Label>
+            <Label htmlFor="file">Arquivo PDF</Label>
             {!filePreview ? (
               <div className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md h-32">
                 <div className="space-y-1 text-center">
@@ -423,21 +434,27 @@ const AdminDocumentsPage = () => {
                     <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                       <span>Categoria: {getCategoryLabel(document.category)}</span>
                       <span>•</span>
-                      <span>Tamanho: {formatFileSize(document.file_size)}</span>
-                      <span>•</span>
+                      {document.file_size > 0 && (
+                        <>
+                          <span>Tamanho: {formatFileSize(document.file_size)}</span>
+                          <span>•</span>
+                        </>
+                      )}
                       <span>Enviado em: {formatDate(document.created_at)}</span>
                     </div>
                   </div>
                   
                   <div className="mt-3 sm:mt-0 flex items-center space-x-2">
-                    <a
-                      href={document.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sindmoba-primary hover:text-sindmoba-secondary text-sm"
-                    >
-                      Visualizar
-                    </a>
+                    {document.file_url && (
+                      <a
+                        href={document.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sindmoba-primary hover:text-sindmoba-secondary text-sm"
+                      >
+                        Visualizar
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
