@@ -55,7 +55,7 @@ export const FileUploader = ({
       // Generate a unique file name to avoid collisions
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = fileName;
       
       // Upload the file to Supabase Storage
       const { data, error } = await supabase.storage
@@ -64,18 +64,15 @@ export const FileUploader = ({
       
       if (error) throw error;
       
-      // Get the public URL of the uploaded file
-      const fileId = data.path;
+      onFileUploaded({
+        id: data.path,
+        name: file.name,
+        size: file.size
+      });
       
       toast({
         title: "Arquivo enviado com sucesso",
         description: "Seu documento foi enviado com sucesso.",
-      });
-      
-      onFileUploaded({
-        id: fileId,
-        name: file.name,
-        size: file.size
       });
       
     } catch (error: any) {
