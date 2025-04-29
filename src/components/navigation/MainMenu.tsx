@@ -7,11 +7,14 @@ import {
   List, 
   Mail, 
   User,
-  Shield
+  Shield,
+  Users,
+  FileText,
+  Newspaper,
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface MainMenuProps {
   closeMenu: () => void;
@@ -35,7 +38,8 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     }
   }, [profile]);
   
-  const menuItems = [
+  // Regular user menu items
+  const memberMenuItems = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
@@ -43,6 +47,19 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Perguntas Frequentes', path: '/faq', icon: List },
     { title: 'Contato e Atendimento', path: '/contact', icon: Mail }
   ];
+
+  // Admin menu items
+  const adminMenuItems = [
+    { title: 'Gerenciar Membros', path: '/admin', icon: Users },
+    { title: 'Documentos', path: '/admin/documents', icon: FileText },
+    { title: 'Eventos', path: '/admin/events', icon: Calendar },
+    { title: 'Notícias', path: '/admin/news', icon: Newspaper },
+    { title: 'Gerenciamento de Contatos', path: '/admin/contacts', icon: Mail },
+    { title: 'FAQ', path: '/admin/faq', icon: HelpCircle },
+  ];
+
+  // Select which menu items to display based on user role
+  const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
 
   return (
     <div className="flex h-full flex-col bg-white p-4">
@@ -78,7 +95,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       </div>
       
       <div className="divide-y">
-        {profile?.role === 'admin' && (
+        {profile?.role === 'admin' && !adminMenuItems.some(item => item.path === '/admin') && (
           <NavLink
             to="/admin"
             className={({ isActive }) =>

@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Mail } from 'lucide-react';
+import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,7 @@ const MainPage = () => {
     setNotifications([]);
   }, []);
 
-  const menuItems: MenuItem[] = [
+  const memberMenuItems: MenuItem[] = [
     { 
       title: 'Últimas Notícias', 
       path: '/news', 
@@ -75,13 +76,62 @@ const MainPage = () => {
     }
   ];
 
+  const adminMenuItems: MenuItem[] = [
+    { 
+      title: 'Gerenciar Membros', 
+      path: '/admin', 
+      icon: Users,
+      color: '#3498db',
+      description: 'Gerencie os membros do sindicato'
+    },
+    { 
+      title: 'Documentos', 
+      path: '/admin/documents', 
+      icon: FileText,
+      color: '#27ae60',
+      description: 'Gerencie os documentos do sindicato'
+    },
+    { 
+      title: 'Eventos', 
+      path: '/admin/events', 
+      icon: Calendar,
+      color: '#f39c12',
+      description: 'Gerencie eventos e assembleias'
+    },
+    { 
+      title: 'Notícias', 
+      path: '/admin/news', 
+      icon: Newspaper,
+      color: '#8e44ad',
+      description: 'Publique e edite notícias'
+    },
+    { 
+      title: 'Gerenciamento de Contatos', 
+      path: '/admin/contacts', 
+      icon: Mail,
+      color: '#2980b9',
+      description: 'Configure os contatos do sindicato'
+    },
+    { 
+      title: 'FAQ', 
+      path: '/admin/faq', 
+      icon: HelpCircle,
+      color: '#2c3e50',
+      description: 'Gerencie as perguntas frequentes'
+    }
+  ];
+
+  // Select which menu items to display based on user role
+  const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
+
   return (
     <div className="sindmoba-container">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h2 className="mb-1">Bem-vindo, {profile?.full_name || 'Associado'}</h2>
           <p className="text-sm text-gray-600">
-            {profile?.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
+            {profile?.role === 'admin' ? 'Administrador' : 
+             profile?.specialty === 'pml' ? 'PML - Perito Médico Legal' : 
              profile?.specialty === 'pol' ? 'POL - Perito Odonto Legal' : 
              'Associado SINDMOBA'}
           </p>
@@ -98,8 +148,14 @@ const MainPage = () => {
       </div>
 
       <section className="mb-6 rounded-lg bg-sindmoba-primary bg-opacity-10 p-4">
-        <h3 className="mb-3 text-lg font-semibold text-sindmoba-primary">Notificações Recentes</h3>
-        {notifications.length > 0 ? (
+        <h3 className="mb-3 text-lg font-semibold text-sindmoba-primary">
+          {profile?.role === 'admin' ? 'Painel Administrativo' : 'Notificações Recentes'}
+        </h3>
+        {profile?.role === 'admin' ? (
+          <p className="text-gray-600 p-3 bg-white rounded-lg">
+            Bem-vindo ao painel administrativo do SINDMOBA. Use o menu abaixo para gerenciar o sindicato.
+          </p>
+        ) : notifications.length > 0 ? (
           <div className="space-y-2">
             {notifications.map(notification => (
               <div key={notification.id} className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
@@ -119,7 +175,9 @@ const MainPage = () => {
       <Separator className="my-6" />
 
       <section>
-        <h3 className="mb-4 text-lg font-semibold">Menu Principal</h3>
+        <h3 className="mb-4 text-lg font-semibold">
+          {profile?.role === 'admin' ? 'Funções Administrativas' : 'Menu Principal'}
+        </h3>
         <div className="grid grid-cols-2 gap-4">
           {menuItems.map(item => (
             <Link
@@ -141,9 +199,13 @@ const MainPage = () => {
       </section>
 
       <section className="mt-8 rounded-lg bg-sindmoba-light p-4 text-center">
-        <h3 className="mb-2 text-lg font-semibold">Precisa de ajuda?</h3>
+        <h3 className="mb-2 text-lg font-semibold">
+          {profile?.role === 'admin' ? 'Precisa de ajuda com o painel?' : 'Precisa de ajuda?'}
+        </h3>
         <p className="mb-4 text-sm text-gray-600">
-          Nossa equipe está à disposição para atendê-lo em caso de dúvidas.
+          {profile?.role === 'admin' 
+            ? 'Entre em contato com o suporte técnico em caso de problemas.'
+            : 'Nossa equipe está à disposição para atendê-lo em caso de dúvidas.'}
         </p>
         <Button
           asChild
