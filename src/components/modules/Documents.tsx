@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
@@ -50,20 +51,28 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR', options);
 };
 
-// Extract filename from Supabase URL
+// Extract filename from Supabase URL - IMPROVED
 const extractFilePath = (fileUrl: string): string => {
   if (!fileUrl) return '';
+  
+  console.log("Processing file URL:", fileUrl);
   
   try {
     // Handle if the URL is a full Supabase storage URL
     if (fileUrl.includes('supabase.co/storage/v1/object/public/')) {
-      const bucketName = 'documents';
-      const urlParts = fileUrl.split(`/storage/v1/object/public/${bucketName}/`);
-      if (urlParts.length > 1) {
-        return urlParts[1];
-      } 
-      return fileUrl;
+      const parts = fileUrl.split('/storage/v1/object/public/');
+      if (parts.length > 1) {
+        const afterBucket = parts[1];
+        const bucketAndPath = afterBucket.split('/', 2);
+        if (bucketAndPath.length > 1) {
+          // Return path without the bucket name
+          return afterBucket.substring(bucketAndPath[0].length + 1);
+        }
+        return afterBucket;
+      }
     }
+    
+    // If it's a direct path, just return it
     return fileUrl;
   } catch (error) {
     console.error('Error extracting file path:', error);
@@ -204,19 +213,39 @@ const Documents = () => {
         try {
           console.log("Attempting to get signed URL for:", document.file_url);
           
-          // Extract just the filename from the full URL path
-          const filePath = extractFilePath(document.file_url);
+          // Extract just the filename from the full URL path - IMPROVED
+          let filePath = document.file_url;
+          let bucketName = 'documents';
+          
+          // For URLs that have the full Supabase storage URL
+          if (document.file_url.includes('supabase.co/storage/v1/object/public/')) {
+            const parts = document.file_url.split('/storage/v1/object/public/');
+            if (parts.length > 1) {
+              const afterBucket = parts[1]; // 'documents/some-filename.pdf'
+              const bucketAndPath = afterBucket.split('/', 2); // ['documents', 'some-filename.pdf']
+              if (bucketAndPath.length > 0) {
+                bucketName = bucketAndPath[0]; // 'documents'
+                if (bucketAndPath.length > 1) {
+                  filePath = afterBucket.substring(bucketAndPath[0].length + 1); // 'some-filename.pdf'
+                } else {
+                  filePath = ''; // empty path if no file was specified
+                }
+              }
+            }
+          }
+          
+          console.log("Extracted bucket:", bucketName);
           console.log("Extracted filePath:", filePath);
           
           if (!filePath) {
             throw new Error("Invalid file path");
           }
           
-          // Generate a temporary URL for file viewing/downloading
+          // Generate a temporary URL for file viewing/downloading with longer expiry
           const { data, error } = await supabase
             .storage
-            .from('documents')
-            .createSignedUrl(filePath, 60);
+            .from(bucketName)
+            .createSignedUrl(filePath, 600); // Increased to 10 minutes
           
           if (error) {
             console.error('Storage error:', error);

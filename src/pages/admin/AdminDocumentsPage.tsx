@@ -61,27 +61,40 @@ const AdminDocumentsPage = () => {
         try {
           console.log("Attempting to get signed URL for:", document.file_url);
           
-          // Extract just the filename from the full URL path
+          // Extract just the filename from the full URL path - IMPROVED
           let filePath = document.file_url;
+          let bucketName = 'documents';
           
-          // Handle if the URL is a full Supabase storage URL
+          // For URLs that have the full Supabase storage URL
           if (document.file_url.includes('supabase.co/storage/v1/object/public/')) {
-            const bucketName = 'documents';
-            const urlParts = document.file_url.split(`/storage/v1/object/public/${bucketName}/`);
-            if (urlParts.length > 1) {
-              filePath = urlParts[1];
-              console.log("Extracted filePath:", filePath);
-            } else {
-              console.error("Could not extract file path from URL:", document.file_url);
-              throw new Error("Could not extract file path from URL");
+            const parts = document.file_url.split('/storage/v1/object/public/');
+            if (parts.length > 1) {
+              const afterBucket = parts[1]; // 'documents/some-filename.pdf'
+              const bucketAndPath = afterBucket.split('/', 2); // ['documents', 'some-filename.pdf']
+              if (bucketAndPath.length > 0) {
+                bucketName = bucketAndPath[0]; // 'documents'
+                if (bucketAndPath.length > 1) {
+                  filePath = afterBucket.substring(bucketAndPath[0].length + 1); // 'some-filename.pdf'
+                } else {
+                  filePath = ''; // empty path if no file was specified
+                }
+              }
             }
           }
           
-          // Generate a temporary URL for file viewing/downloading
+          console.log("Extracted bucket:", bucketName);
+          console.log("Extracted filePath:", filePath);
+          
+          if (!filePath) {
+            console.error('Could not extract file path from URL:', document.file_url);
+            throw new Error("Could not extract file path from URL");
+          }
+          
+          // Generate a temporary URL for file viewing/downloading with longer expiry
           const { data, error } = await supabase
             .storage
-            .from('documents')
-            .createSignedUrl(filePath, 300); // Increased expiry to 5 minutes
+            .from(bucketName)
+            .createSignedUrl(filePath, 1800); // Increased expiry to 30 minutes
           
           if (error) {
             console.error('Storage error:', error);
@@ -126,12 +139,30 @@ const AdminDocumentsPage = () => {
     try {
       // If there's a file, delete it from storage
       if (documentToDelete.file_url) {
-        const fileUrl = documentToDelete.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', '');
+        let bucketName = 'documents';
+        let filePath = documentToDelete.file_url;
+        
+        // Process the file URL to extract the correct path
+        if (documentToDelete.file_url.includes('/storage/v1/object/public/')) {
+          const parts = documentToDelete.file_url.split('/storage/v1/object/public/');
+          if (parts.length > 1) {
+            const afterBucket = parts[1]; 
+            const bucketAndPath = afterBucket.split('/', 2);
+            if (bucketAndPath.length > 0) {
+              bucketName = bucketAndPath[0];
+              if (bucketAndPath.length > 1) {
+                filePath = afterBucket.substring(bucketAndPath[0].length + 1);
+              }
+            }
+          }
+        }
+        
+        console.log(`Attempting to delete file from bucket: ${bucketName}, path: ${filePath}`);
         
         const { error: storageError } = await supabase
           .storage
-          .from('documents')
-          .remove([fileUrl]);
+          .from(bucketName)
+          .remove([filePath]);
         
         if (storageError) {
           console.error('Error deleting file from storage:', storageError);
