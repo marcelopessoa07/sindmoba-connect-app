@@ -54,7 +54,7 @@ const PendingRegistrationsPage = () => {
           cpf: item.cpf,
           specialty: item.specialty,
           created_at: item.created_at,
-          status: item.status
+          status: item.status || 'pending'  // Ensure status is always set
         }));
         
         setPendingUsers(mappedData);
@@ -75,9 +75,10 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
+      // Use a typed object with only the fields we want to update
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' })
+        .update({ status: 'active' } as Partial<ProfileWithStatus>)
         .eq('id', userId);
 
       if (updateError) throw updateError;

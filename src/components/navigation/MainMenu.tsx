@@ -1,3 +1,4 @@
+
 import { NavLink } from 'react-router-dom';
 import { 
   Calendar, 
@@ -51,7 +52,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       <div className="mb-6 flex items-center justify-center">
         <div className="h-24 w-full flex items-center justify-center">
           <img 
-            src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+            src="/lovable-uploads/66f7fa3e-a2bd-4a64-bf5d-c6cb1846a31d.png" 
             alt="SINDMOBA Logo" 
             className="max-h-full max-w-full object-contain" 
           />

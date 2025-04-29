@@ -104,7 +104,7 @@ const MainPage = () => {
         <div className="h-12 w-12 rounded-full bg-sindmoba-primary p-1">
           <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
             <img 
-              src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
+              src="/lovable-uploads/66f7fa3e-a2bd-4a64-bf5d-c6cb1846a31d.png" 
               alt="SINDMOBA Logo" 
               className="max-w-full max-h-full object-contain" 
             />
