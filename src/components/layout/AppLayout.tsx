@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
 import { requestNotificationPermission } from '@/utils/notifications';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   
   // Initialize notifications
   useNotifications();
@@ -24,10 +26,17 @@ const AppLayout = () => {
     setMenuOpen(!menuOpen);
   };
 
-  const handleBackClick = () => {
+  const handleBackClick = async () => {
     if (location.pathname === '/main') {
       if (confirm('Deseja sair do aplicativo?')) {
-        // In a real app, we would exit the app here
+        try {
+          // Sign out the user properly
+          await signOut();
+        } catch (error) {
+          console.error("Error signing out:", error);
+          // Fallback to navigate to login page
+          navigate('/login');
+        }
       }
     } else {
       navigate(-1);

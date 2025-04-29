@@ -44,7 +44,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
-    { title: 'Perguntas Frequentes', path: '/faq', icon: List },
+    { title: 'Perguntas Frequentes', path: '/faq', icon: HelpCircle },
     { title: 'Contato e Atendimento', path: '/contact', icon: Mail }
   ];
 
@@ -64,8 +64,13 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   // Handle logout with confirmation
   const handleLogout = async () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
-      await signOut();
-      closeMenu();
+      try {
+        closeMenu(); // Close menu first for better UX
+        await signOut(); // This will handle the redirect to login page
+      } catch (error) {
+        console.error("Logout error:", error);
+        window.location.href = '/login'; // Fallback redirect
+      }
     }
   };
 
