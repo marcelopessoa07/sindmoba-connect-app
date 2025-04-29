@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare } from 'lucide-react';
+import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -74,6 +75,7 @@ const Documents = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [fileError, setFileError] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -175,6 +177,7 @@ const Documents = () => {
   const viewDocument = async (document: any) => {
     try {
       setSelectedDocument(document);
+      setFileError(false);
       
       if (document.file_url) {
         try {
@@ -205,22 +208,21 @@ const Documents = () => {
           if (error) {
             console.error('Storage error:', error);
             setDocumentUrl('');
-            setIsDialogOpen(true);
+            setFileError(true);
             
             toast({
               title: "Erro ao acessar o documento",
-              description: "Não foi possível gerar o link para visualização. O documento pode não existir no storage.",
+              description: "O arquivo não está disponível no storage.",
               variant: "destructive",
             });
-            
-            return;
+          } else {
+            console.log("Signed URL generated successfully:", data.signedUrl);
+            setDocumentUrl(data?.signedUrl || '');
           }
-          
-          console.log("Signed URL generated successfully:", data.signedUrl);
-          setDocumentUrl(data?.signedUrl || '');
         } catch (storageError) {
           console.error('Error generating document URL:', storageError);
           setDocumentUrl('');
+          setFileError(true);
           
           toast({
             title: "Erro ao processar documento",
@@ -235,7 +237,7 @@ const Documents = () => {
       setIsDialogOpen(true);
       
       // Record document view in recipients table if applicable
-      if (user) {
+      if (user && !fileError) {
         await supabase
           .from('document_recipients')
           .update({ viewed_at: new Date().toISOString() })
@@ -572,10 +574,11 @@ const Documents = () => {
                     </a>
                   </p>
                 ) : (
-                  <div className="text-center p-4">
-                    <p className="mb-2">Este documento não possui arquivo disponível para visualização.</p>
+                  <div className="text-center p-6 border border-dashed rounded-lg bg-gray-50">
+                    <AlertCircle className="mx-auto h-12 w-12 text-amber-500 mb-3" />
+                    <p className="mb-2 font-medium">Este arquivo não está disponível.</p>
                     <p className="text-sm text-gray-500">
-                      O arquivo pode ter sido removido ou não está mais disponível no sistema.
+                      O arquivo pode ter sido removido ou não está mais disponível no storage.
                     </p>
                   </div>
                 )}
