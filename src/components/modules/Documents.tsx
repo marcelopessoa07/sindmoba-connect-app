@@ -48,6 +48,7 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR', options);
 };
 
+// Define Message interface to work around TypeScript errors
 interface Message {
   id: string;
   sender_id: string | null;
@@ -151,12 +152,12 @@ const Documents = () => {
       
       if (!user) return;
 
-      // Fetch messages using a raw query to avoid TypeScript errors
-      const { data, error } = await supabase
-        .from('messages')
+      // Use type assertion to work around TypeScript error
+      const { data, error } = await (supabase
+        .from('messages') as any)
         .select('*')
         .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false }) as { data: Message[] | null, error: any };
+        .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
@@ -216,11 +217,11 @@ const Documents = () => {
 
   const updateMessageReadStatus = async (messageId: string) => {
     try {
-      // Use a raw query to avoid TypeScript errors since the table was just created
-      const { error } = await supabase
-        .from('messages')
+      // Use type assertion to work around TypeScript error
+      const { error } = await (supabase
+        .from('messages') as any)
         .update({ read_at: new Date().toISOString() })
-        .eq('id', messageId) as { error: any };
+        .eq('id', messageId);
       
       if (error) {
         throw error;
@@ -244,11 +245,11 @@ const Documents = () => {
     if (!messageToDelete) return;
 
     try {
-      // Use a raw query to avoid TypeScript errors since the table was just created
-      const { error } = await supabase
-        .from('messages')
+      // Use type assertion to work around TypeScript error
+      const { error } = await (supabase
+        .from('messages') as any)
         .delete()
-        .eq('id', messageToDelete.id) as { error: any };
+        .eq('id', messageToDelete.id);
 
       if (error) {
         throw error;
