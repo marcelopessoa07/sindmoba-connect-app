@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/components/ui/use-toast';
-import { File, Upload, CheckCircle } from 'lucide-react';
+import { File, Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const FileSubmissionPage = () => {
   const [documentType, setDocumentType] = useState('');
@@ -21,8 +21,106 @@ const FileSubmissionPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [configError, setConfigError] = useState(false);
+  const [bucketInitialized, setBucketInitialized] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    // Check if the storage bucket exists on component mount
+    const checkBucketExists = async () => {
+      try {
+        console.log("Checking if storage bucket exists...");
+        const { data, error } = await supabase
+          .storage
+          .getBucket('member-submissions');
+          
+        if (error) {
+          console.error("Error checking bucket:", error);
+          
+          if (error.message.includes('not found')) {
+            setConfigError(true);
+            console.log("Bucket 'member-submissions' doesn't exist");
+          }
+        } else if (data) {
+          console.log("Bucket exists:", data);
+          setBucketInitialized(true);
+        }
+      } catch (err) {
+        console.error("Exception checking bucket:", err);
+        setConfigError(true);
+      }
+    };
+
+    checkBucketExists();
+  }, []);
+
+  // Function to try to create the bucket if user is admin
+  const tryInitializeBucket = async () => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // First check if user is admin
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError || !profileData) {
+        throw new Error("Não foi possível verificar suas permissões");
+      }
+      
+      // Only admins can create the bucket
+      if (profileData.role !== 'admin') {
+        toast({
+          title: "Permissão negada",
+          description: "Apenas administradores podem inicializar o sistema de arquivos.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Try to create the bucket
+      const { data, error } = await supabase
+        .storage
+        .createBucket('member-submissions', {
+          public: false,
+          fileSizeLimit: 10485760, // 10MB in bytes
+        });
+        
+      if (error) {
+        console.error("Error creating bucket:", error);
+        throw new Error("Não foi possível criar o bucket: " + error.message);
+      }
+      
+      console.log("Bucket created successfully:", data);
+      
+      // Create RLS policies for the bucket
+      // Note: These will need to be done in SQL, we just show a success message
+      // The actual policies should be in the SQL migration
+      
+      toast({
+        title: "Bucket criado com sucesso!",
+        description: "O sistema de arquivos foi inicializado. Agora você pode fazer upload de arquivos.",
+      });
+      
+      setBucketInitialized(true);
+      setConfigError(false);
+    } catch (error: any) {
+      console.error("Error initializing bucket:", error);
+      toast({
+        title: "Erro ao inicializar bucket",
+        description: error.message || "Ocorreu um erro ao configurar o sistema de arquivos.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -39,6 +137,16 @@ const FileSubmissionPage = () => {
         description: "Você precisa estar logado para enviar arquivos.",
         variant: "destructive",
       });
+      return;
+    }
+    
+    if (!bucketInitialized) {
+      toast({
+        title: "Sistema não configurado",
+        description: "O sistema de arquivos não está configurado. Entre em contato com o administrador.",
+        variant: "destructive",
+      });
+      setConfigError(true);
       return;
     }
     
@@ -65,20 +173,20 @@ const FileSubmissionPage = () => {
     try {
       console.log("Starting file upload with user ID:", user.id);
       
-      // First, create the storage bucket if it doesn't exist
+      // Check if the storage bucket exists one more time just to be sure
       try {
         const { data: bucketExists, error: checkBucketError } = await supabase
           .storage
           .getBucket('member-submissions');
           
         if (checkBucketError && checkBucketError.message.includes('not found')) {
-          // Bucket doesn't exist, user will need to run the SQL migration
           console.error("Bucket 'member-submissions' doesn't exist. Please run the SQL migration first");
           toast({
             title: "Erro de configuração",
             description: "O sistema não está configurado corretamente para upload de arquivos. Entre em contato com o administrador.",
             variant: "destructive",
           });
+          setConfigError(true);
           setIsSubmitting(false);
           return;
         }
@@ -142,6 +250,7 @@ const FileSubmissionPage = () => {
       }
       
       setIsSuccess(true);
+      setConfigError(false);
       toast({
         title: "Arquivo enviado com sucesso!",
         description: "Seu documento foi recebido pelo SINDMOBA.",
@@ -185,6 +294,28 @@ const FileSubmissionPage = () => {
       <p className="mb-6 text-gray-600">
         Utilize este formulário para enviar documentos ao SINDMOBA. Todos os arquivos enviados são tratados com confidencialidade.
       </p>
+      
+      {configError && (
+        <div className="rounded-lg border border-red-500 bg-red-100 p-4 text-center mb-6 shadow-sm">
+          <div className="mb-2 flex justify-center">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+          </div>
+          <h3 className="mb-2 text-lg font-bold text-red-700">Erro de configuração</h3>
+          <p className="mb-3 text-red-700">
+            O sistema não está configurado corretamente para upload de arquivos. Entre em contato com o administrador.
+          </p>
+          {user && (
+            <Button 
+              onClick={tryInitializeBucket} 
+              variant="destructive" 
+              className="mt-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Inicializando..." : "Inicializar Sistema (Admin)"}
+            </Button>
+          )}
+        </div>
+      )}
       
       {isSuccess ? (
         <div className="rounded-lg border border-sindmoba-success bg-white p-8 text-center shadow-sm">
@@ -299,7 +430,7 @@ const FileSubmissionPage = () => {
             <Button 
               type="submit" 
               className="bg-sindmoba-primary hover:bg-sindmoba-secondary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || configError}
             >
               {isSubmitting ? (
                 <>
