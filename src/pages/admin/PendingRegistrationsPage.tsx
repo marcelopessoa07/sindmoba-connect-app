@@ -12,35 +12,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
 import { RefreshCw, Mail } from 'lucide-react';
 
-// Define our own type for profile data that includes the status field
+// Define a simplified type for profile data
 type ProfileWithStatus = {
   id: string;
   full_name: string | null;
   email: string;
   cpf: string | null;
-  specialty: Database['public']['Enums']['specialty_type'] | null;
+  specialty: string | null;
   created_at: string | null;
   status: string;
-};
-
-// Define a type for raw profile data from database with required status field
-type RawProfile = {
-  id: string;
-  full_name: string | null;
-  email: string;
-  cpf: string | null;
-  specialty: Database['public']['Enums']['specialty_type'] | null;
-  created_at: string | null;
-  status: string;
-  // Add other profile properties that might come from the database
-  phone?: string;
-  registration_number?: string;
-  address?: string;
-  role?: string;
-  updated_at?: string;
 };
 
 const PendingRegistrationsPage = () => {
@@ -96,7 +78,7 @@ const PendingRegistrationsPage = () => {
     try {
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' } as Record<string, any>)
+        .update({ status: 'active' })
         .eq('id', userId);
 
       if (updateError) throw updateError;
@@ -108,7 +90,7 @@ const PendingRegistrationsPage = () => {
 
       // Refresh the list
       fetchPendingUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving user:', error);
       toast({
         title: 'Erro ao aprovar usuário',
@@ -126,7 +108,15 @@ const PendingRegistrationsPage = () => {
         body: { email }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw new Error(error.message || 'Erro ao enviar o convite');
+      }
+      
+      if (data?.error) {
+        console.error('Error response from edge function:', data.error);
+        throw new Error(data.error);
+      }
       
       toast({
         title: 'Email reenviado',
@@ -136,7 +126,7 @@ const PendingRegistrationsPage = () => {
       console.error('Error resending invite:', error);
       toast({
         title: 'Erro ao reenviar email',
-        description: 'Edge Function returned a non-2xx status code',
+        description: error.message || 'Erro inesperado ao enviar o convite',
         variant: 'destructive',
       });
     } finally {

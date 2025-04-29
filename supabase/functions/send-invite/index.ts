@@ -30,8 +30,17 @@ serve(async (req) => {
     // Check if RESEND_API_KEY is configured
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY is not configured');
-      throw new Error('Email service configuration is missing');
+      console.error('RESEND_API_KEY environment variable is not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Email service configuration is missing. Please configure the RESEND_API_KEY.',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
     
     const resend = new Resend(resendApiKey);
@@ -42,7 +51,16 @@ serve(async (req) => {
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Supabase environment variables are not configured');
-      throw new Error('Backend configuration is incomplete');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Backend configuration is incomplete. Please check Supabase environment variables.',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
     
     const supabaseAdmin = createClient(
@@ -77,43 +95,87 @@ serve(async (req) => {
     
     if (passwordResetError) {
       console.error('Error generating password reset link:', passwordResetError);
-      throw new Error(`Error generating password reset link: ${passwordResetError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Error generating password reset link: ${passwordResetError.message}`,
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
     
     if (!passwordResetData?.properties?.action_link) {
       console.error('No action link generated');
-      throw new Error('Failed to generate password reset link');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to generate password reset link',
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
     
     const resetLink = passwordResetData.properties.action_link;
     console.log('Reset link generated successfully');
     
-    // Send email with password reset link
-    const { data, error } = await resend.emails.send({
-      from: 'SINDMOBA <contato@sindmoba.org.br>',
-      to: [email],
-      subject: 'Bem-vindo ao SINDMOBA - Configure sua senha',
-      html: `
-        <h1>Bem-vindo ao SINDMOBA, ${name}!</h1>
-        <p>Seu cadastro foi realizado com sucesso.</p>
-        <p>Para acessar a plataforma, por favor configure sua senha clicando no link abaixo:</p>
-        <p><a href="${resetLink}">Clique aqui para configurar sua senha</a></p>
-        <p>Este link é válido por 24 horas.</p>
-        <p>Atenciosamente,<br>Equipe SINDMOBA</p>
-      `,
-    });
+    try {
+      // Send email with password reset link
+      const { data, error } = await resend.emails.send({
+        from: 'SINDMOBA <contato@sindmoba.org.br>',
+        to: [email],
+        subject: 'Bem-vindo ao SINDMOBA - Configure sua senha',
+        html: `
+          <h1>Bem-vindo ao SINDMOBA, ${name}!</h1>
+          <p>Seu cadastro foi realizado com sucesso.</p>
+          <p>Para acessar a plataforma, por favor configure sua senha clicando no link abaixo:</p>
+          <p><a href="${resetLink}">Clique aqui para configurar sua senha</a></p>
+          <p>Este link é válido por 24 horas.</p>
+          <p>Atenciosamente,<br>Equipe SINDMOBA</p>
+        `,
+      });
 
-    if (error) {
-      console.error('Resend API error:', error);
-      throw error;
+      if (error) {
+        console.error('Resend API error:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: `Erro no serviço de email: ${error.message}`,
+            success: false 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
+
+      console.log('Email sent successfully to:', email);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Email sent successfully' }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    } catch (emailError: any) {
+      console.error('Error sending email:', emailError);
+      return new Response(
+        JSON.stringify({ 
+          error: `Erro ao enviar email: ${emailError.message}`,
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
-
-    console.log('Email sent successfully to:', email);
-    return new Response(JSON.stringify({ success: true, message: 'Email sent successfully' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in send-invite function:', error.message);
     return new Response(
       JSON.stringify({ 
