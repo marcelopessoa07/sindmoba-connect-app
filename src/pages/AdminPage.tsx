@@ -291,10 +291,10 @@ const AdminPage = () => {
 
   return (
     <AdminLayout title="Gerenciamento de Membros">
-      <Tabs defaultValue="members">
-        <TabsList className="mb-4">
+      <Tabs defaultValue="members" className="space-y-4">
+        <TabsList>
           <TabsTrigger value="members">Membros Cadastrados</TabsTrigger>
-          <TabsTrigger value="pending">Solicitações Pendentes</TabsTrigger>
+          <TabsTrigger value="pending">Filiações Pendentes</TabsTrigger>
           <TabsTrigger value="register">Cadastrar Novo Membro</TabsTrigger>
         </TabsList>
         

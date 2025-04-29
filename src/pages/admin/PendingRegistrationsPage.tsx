@@ -212,12 +212,12 @@ const PendingRegistrationsPage = () => {
   return (
     <div className="space-y-4">
       <p className="text-gray-600">
-        Gerencie as solicitações pendentes de filiação ao sindicato.
+        Gerencie as filiações pendentes ao sindicato.
       </p>
 
       {loading ? (
         <div className="text-center py-8 rounded-lg border bg-white shadow-sm">
-          <p>Carregando solicitações...</p>
+          <p>Carregando filiações pendentes...</p>
         </div>
       ) : pendingRegistrations.length > 0 ? (
         <div className="rounded-lg border bg-white shadow-sm">
@@ -275,16 +275,16 @@ const PendingRegistrationsPage = () => {
         </div>
       ) : (
         <div className="text-center py-8 rounded-lg border bg-white shadow-sm">
-          <p>Não há solicitações pendentes.</p>
+          <p>Não há filiações pendentes.</p>
         </div>
       )}
 
       <AlertDialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar solicitação</AlertDialogTitle>
+            <AlertDialogTitle>Aprovar filiação</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar esta solicitação? Um email será enviado para o usuário com instruções para definir sua senha.
+              Tem certeza que deseja aprovar esta filiação? Um email será enviado para o usuário com instruções para definir sua senha.
               {selectedRegistration && (
                 <p className="mt-2 font-medium">{selectedRegistration.full_name || selectedRegistration.email}</p>
               )}
@@ -306,9 +306,9 @@ const PendingRegistrationsPage = () => {
       <AlertDialog open={isRejectionDialogOpen} onOpenChange={setIsRejectionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar solicitação</AlertDialogTitle>
+            <AlertDialogTitle>Rejeitar filiação</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja rejeitar esta solicitação? Esta ação não pode ser desfeita.
+              Tem certeza que deseja rejeitar esta filiação? Esta ação não pode ser desfeita.
               {selectedRegistration && (
                 <p className="mt-2 font-medium">{selectedRegistration.full_name || selectedRegistration.email}</p>
               )}

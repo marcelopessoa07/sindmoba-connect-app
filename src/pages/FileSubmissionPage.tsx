@@ -1,8 +1,9 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ const FileSubmissionPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,8 +29,17 @@ const FileSubmissionPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para enviar arquivos.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!documentType) {
       toast({
@@ -50,9 +61,33 @@ const FileSubmissionPage = () => {
     
     setIsSubmitting(true);
 
-    // Simulate file upload
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('member-submissions')
+        .upload(filePath, selectedFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Store file metadata in database
+      const { error: dbError } = await supabase
+        .from('member_submissions')
+        .insert({
+          user_id: user.id,
+          document_type: documentType,
+          observations: observations,
+          file_url: filePath,
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+          file_type: selectedFile.type,
+          status: 'pending'
+        });
+      
+      if (dbError) throw dbError;
+      
       setIsSuccess(true);
       toast({
         title: "Arquivo enviado com sucesso!",
@@ -66,7 +101,17 @@ const FileSubmissionPage = () => {
         setSelectedFile(null);
         setIsSuccess(false);
       }, 3000);
-    }, 1500);
+      
+    } catch (error: any) {
+      console.error("Error submitting file:", error);
+      toast({
+        title: "Erro ao enviar arquivo",
+        description: error.message || "Ocorreu um erro ao enviar o arquivo. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
