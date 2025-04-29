@@ -176,17 +176,34 @@ const Documents = () => {
       setSelectedDocument(document);
       
       if (document.file_url) {
-        // Generate a temporary URL for file viewing/downloading
-        const { data, error } = await supabase
-          .storage
-          .from('documents')
-          .createSignedUrl(document.file_url, 60);
-        
-        if (error) {
-          throw error;
+        try {
+          // Generate a temporary URL for file viewing/downloading
+          const { data, error } = await supabase
+            .storage
+            .from('documents')
+            .createSignedUrl(document.file_url, 60);
+          
+          if (error) {
+            console.error('Storage error:', error);
+            setDocumentUrl('');
+            // Show the dialog even if we can't get a URL
+            setIsDialogOpen(true);
+            
+            // Display a toast notification
+            toast({
+              title: "Erro ao acessar o documento",
+              description: "Não foi possível gerar o link para visualização. O documento pode não existir no storage.",
+              variant: "destructive",
+            });
+            
+            return;
+          }
+          
+          setDocumentUrl(data?.signedUrl || '');
+        } catch (storageError) {
+          console.error('Error generating document URL:', storageError);
+          setDocumentUrl('');
         }
-        
-        setDocumentUrl(data?.signedUrl || '');
       } else {
         setDocumentUrl('');
       }
@@ -201,7 +218,12 @@ const Documents = () => {
           .match({ document_id: document.id, recipient_id: user.id });
       }
     } catch (error) {
-      console.error('Error generating document URL:', error);
+      console.error('Error handling document view:', error);
+      toast({
+        title: "Erro ao processar documento",
+        description: "Ocorreu um erro ao tentar abrir o documento.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -515,12 +537,21 @@ const Documents = () => {
                 ) : documentUrl ? (
                   <p className="mb-4 text-center">
                     Este tipo de arquivo não pode ser pré-visualizado.
+                    <br />
+                    <a 
+                      href={documentUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-sindmoba-primary hover:underline"
+                    >
+                      Clique para abrir em uma nova aba
+                    </a>
                   </p>
                 ) : (
                   <div className="text-center p-4">
-                    <p className="mb-2">Este é um documento sem arquivo anexado.</p>
+                    <p className="mb-2">Este documento não possui arquivo disponível para visualização.</p>
                     <p className="text-sm text-gray-500">
-                      Contate o administrador para mais informações.
+                      O arquivo pode ter sido removido ou não está mais disponível no sistema.
                     </p>
                   </div>
                 )}
