@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Clock, X } from 'lucide-react';
+import { FileText, Upload, Clock, X, Eye, Download } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type SpecialtyType = Database["public"]["Enums"]["specialty_type"];
@@ -350,6 +351,9 @@ const AdminDocumentsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [documentUrl, setDocumentUrl] = useState('');
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchDocuments = async () => {
@@ -377,9 +381,40 @@ const AdminDocumentsPage = () => {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchDocuments();
-  });
+  }, []);
+
+  const viewDocument = async (document: any) => {
+    try {
+      setSelectedDocument(document);
+      
+      if (document.file_url) {
+        // Generate a temporary URL for file viewing/downloading
+        const { data, error } = await supabase
+          .storage
+          .from('documents')
+          .createSignedUrl(document.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', ''), 60);
+        
+        if (error) {
+          throw error;
+        }
+        
+        setDocumentUrl(data?.signedUrl || document.file_url);
+      } else {
+        setDocumentUrl('');
+      }
+      
+      setIsPreviewDialogOpen(true);
+    } catch (error) {
+      console.error('Error generating document URL:', error);
+      toast({
+        title: 'Erro ao gerar URL do documento',
+        description: 'Não foi possível visualizar o documento.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const getCategoryLabel = (categoryValue: string) => {
     const category = fileCategories.find(cat => cat.value === categoryValue);
@@ -445,16 +480,15 @@ const AdminDocumentsPage = () => {
                   </div>
                   
                   <div className="mt-3 sm:mt-0 flex items-center space-x-2">
-                    {document.file_url && (
-                      <a
-                        href={document.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sindmoba-primary hover:text-sindmoba-secondary text-sm"
-                      >
-                        Visualizar
-                      </a>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center"
+                      onClick={() => viewDocument(document)}
+                    >
+                      <Eye className="mr-1 h-4 w-4" />
+                      <span>Visualizar</span>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -476,6 +510,51 @@ const AdminDocumentsPage = () => {
           </div>
         )}
       </div>
+      
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedDocument?.title}</DialogTitle>
+            {selectedDocument?.description && (
+              <DialogDescription>{selectedDocument.description}</DialogDescription>
+            )}
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {selectedDocument && (
+              <div className="flex flex-col items-center justify-center">
+                {documentUrl && selectedDocument?.file_type?.includes('pdf') ? (
+                  <iframe 
+                    src={`${documentUrl}#toolbar=0`}
+                    className="w-full h-[500px] border rounded"
+                    title={selectedDocument?.title}
+                  />
+                ) : documentUrl ? (
+                  <p className="mb-4 text-center">
+                    Este tipo de arquivo não pode ser pré-visualizado.
+                  </p>
+                ) : (
+                  <div className="text-center p-4">
+                    <p className="mb-2">Este é um documento sem arquivo anexado.</p>
+                    <p className="text-sm text-gray-500">
+                      Contate o administrador para mais informações.
+                    </p>
+                  </div>
+                )}
+                
+                {documentUrl && (
+                  <Button asChild className="mt-4">
+                    <a href={documentUrl} download={selectedDocument?.title} target="_blank" rel="noreferrer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Baixar Arquivo
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <UploadDialog
         open={isDialogOpen}
