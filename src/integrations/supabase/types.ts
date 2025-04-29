@@ -314,6 +314,7 @@ export type Database = {
           cpf: string | null
           created_at: string | null
           current_job: string | null
+          document_id: string | null
           email: string
           full_name: string | null
           id: string
@@ -328,6 +329,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           current_job?: string | null
+          document_id?: string | null
           email: string
           full_name?: string | null
           id: string
@@ -342,6 +344,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           current_job?: string | null
+          document_id?: string | null
           email?: string
           full_name?: string | null
           id?: string
