@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a type that matches the actual data we get from Supabase
+// Updated interface that properly matches the Supabase profiles table
+// and includes the status field which is being used in our code
 interface ProfileData {
   id: string;
   full_name: string | null;
@@ -26,7 +27,7 @@ interface ProfileData {
   registration_number: string | null;
   address: string | null;
   updated_at: string | null;
-  status: string | null;
+  status: string | null;  // Added this missing field
 }
 
 const PendingRegistrationsPage = () => {
@@ -47,7 +48,9 @@ const PendingRegistrationsPage = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPendingUsers(data || []);
+      
+      // Ensure data is properly typed
+      setPendingUsers(data as ProfileData[] || []);
     } catch (error) {
       console.error('Error fetching pending users:', error);
       toast({
