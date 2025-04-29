@@ -9,7 +9,8 @@ import {
   Users, 
   HelpCircle, 
   Newspaper,
-  Folder
+  Folder,
+  Mail
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/hooks/use-toast';
@@ -88,6 +89,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { title: 'Eventos', icon: CalendarDays, path: '/admin/events' },
     { title: 'Notícias', icon: Newspaper, path: '/admin/news' },
     { title: 'Arquivos Enviados', icon: Folder, path: '/admin/submissions' },
+    { title: 'Gerenciamento de Contatos', icon: Mail, path: '/admin/contacts' },
     { title: 'FAQ', icon: HelpCircle, path: '/admin/faq' },
   ];
 

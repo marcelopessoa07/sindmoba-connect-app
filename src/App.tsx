@@ -28,6 +28,7 @@ import AdminEventsPage from "./pages/admin/AdminEventsPage";
 import AdminNewsPage from "./pages/admin/AdminNewsPage";
 import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
 import AdminFAQPage from "./pages/admin/AdminFAQPage";
+import AdminContactsPage from "./pages/admin/AdminContactsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ const App = () => {
                 <Route path="/admin/events" element={<AdminEventsPage />} />
                 <Route path="/admin/news" element={<AdminNewsPage />} />
                 <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
+                <Route path="/admin/contacts" element={<AdminContactsPage />} />
                 <Route path="/admin/faq" element={<AdminFAQPage />} />
                 <Route path="/main" element={<MainPage />} />
                 <Route path="/news" element={<NewsPage />} />

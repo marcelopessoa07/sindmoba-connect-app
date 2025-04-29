@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import MemberRegistration from '@/components/admin/MemberRegistration';
 import AdminLayout from '@/components/admin/AdminLayout';
-import ContactSettingsForm from '@/components/admin/ContactSettingsForm';
 import PendingRegistrationsPage from '@/pages/admin/PendingRegistrationsPage';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -53,14 +52,8 @@ import {
   Pencil, 
   Trash2, 
   UserPlus,
-  CalendarDays,
-  FileText,
-  Users,
-  HelpCircle,
-  Newspaper,
-  Folder,
-  RefreshCw,
-  Mail
+  Mail,
+  RefreshCw
 } from 'lucide-react';
 
 type SpecialtyType = 'pml' | 'pol' | '';
@@ -303,7 +296,6 @@ const AdminPage = () => {
           <TabsTrigger value="members">Membros Cadastrados</TabsTrigger>
           <TabsTrigger value="pending">Solicitações Pendentes</TabsTrigger>
           <TabsTrigger value="register">Cadastrar Novo Membro</TabsTrigger>
-          <TabsTrigger value="settings">Configurações</TabsTrigger>
         </TabsList>
         
         <TabsContent value="members">
@@ -627,10 +619,6 @@ const AdminPage = () => {
         
         <TabsContent value="register">
           <MemberRegistration onRegistrationSuccess={fetchMembers} />
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <ContactSettingsForm />
         </TabsContent>
       </Tabs>
     </AdminLayout>
