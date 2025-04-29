@@ -54,12 +54,10 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Define the update data with appropriate type
-      const updateData = { status: 'active' } as { status: string };
-      
+      // Use a type assertion that matches what Supabase expects for this table
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({ status: 'active' } as unknown as Database['public']['Tables']['profiles']['Update'])
         .eq('id', userId);
 
       if (updateError) throw updateError;
