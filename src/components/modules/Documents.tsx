@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, ExternalLink, Trash2, MessageSquare, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client'; 
@@ -23,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { 
   Table,
   TableBody,
@@ -48,6 +48,27 @@ const formatDate = (dateString: string) => {
     day: 'numeric'
   };
   return new Date(dateString).toLocaleDateString('pt-BR', options);
+};
+
+// Extract filename from Supabase URL
+const extractFilePath = (fileUrl: string): string => {
+  if (!fileUrl) return '';
+  
+  try {
+    // Handle if the URL is a full Supabase storage URL
+    if (fileUrl.includes('supabase.co/storage/v1/object/public/')) {
+      const bucketName = 'documents';
+      const urlParts = fileUrl.split(`/storage/v1/object/public/${bucketName}/`);
+      if (urlParts.length > 1) {
+        return urlParts[1];
+      } 
+      return fileUrl;
+    }
+    return fileUrl;
+  } catch (error) {
+    console.error('Error extracting file path:', error);
+    return fileUrl;
+  }
 };
 
 // Define Message interface to work around TypeScript errors
@@ -184,19 +205,11 @@ const Documents = () => {
           console.log("Attempting to get signed URL for:", document.file_url);
           
           // Extract just the filename from the full URL path
-          let filePath = document.file_url;
+          const filePath = extractFilePath(document.file_url);
+          console.log("Extracted filePath:", filePath);
           
-          // Handle if the URL is a full Supabase storage URL
-          if (document.file_url.includes('supabase.co/storage/v1/object/public/')) {
-            const bucketName = 'documents';
-            const urlParts = document.file_url.split(`/storage/v1/object/public/${bucketName}/`);
-            if (urlParts.length > 1) {
-              filePath = urlParts[1];
-              console.log("Extracted filePath:", filePath);
-            } else {
-              console.error("Could not extract file path from URL:", document.file_url);
-              throw new Error("Could not extract file path from URL");
-            }
+          if (!filePath) {
+            throw new Error("Invalid file path");
           }
           
           // Generate a temporary URL for file viewing/downloading
@@ -232,12 +245,13 @@ const Documents = () => {
         }
       } else {
         setDocumentUrl('');
+        setFileError(true);
       }
       
       setIsDialogOpen(true);
       
       // Record document view in recipients table if applicable
-      if (user && !fileError) {
+      if (user && !fileError && document.file_url) {
         await supabase
           .from('document_recipients')
           .update({ viewed_at: new Date().toISOString() })
@@ -545,15 +559,14 @@ const Documents = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{selectedDocument?.title}</DialogTitle>
+            {selectedDocument?.description && (
+              <DialogDescription>{selectedDocument.description}</DialogDescription>
+            )}
           </DialogHeader>
           
           <div className="mt-4">
             {selectedDocument && (
               <div className="flex flex-col items-center justify-center">
-                {selectedDocument.description && (
-                  <p className="mb-4 text-gray-600">{selectedDocument.description}</p>
-                )}
-                
                 {documentUrl && selectedDocument?.file_type?.includes('pdf') ? (
                   <iframe 
                     src={`${documentUrl}#toolbar=0`}

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Download, Trash2, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface DocumentPreviewDialogProps {
   open: boolean;
@@ -19,6 +20,8 @@ const DocumentPreviewDialog = ({
   documentUrl,
   onDelete
 }: DocumentPreviewDialogProps) => {
+  const fileNotAvailable = !documentUrl || documentUrl === '';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -32,13 +35,13 @@ const DocumentPreviewDialog = ({
         <div className="mt-4">
           {document && (
             <div className="flex flex-col items-center justify-center">
-              {documentUrl && document?.file_type?.includes('pdf') ? (
+              {!fileNotAvailable && document?.file_type?.includes('pdf') ? (
                 <iframe 
                   src={`${documentUrl}#toolbar=0`}
                   className="w-full h-[500px] border rounded"
                   title={document?.title}
                 />
-              ) : documentUrl ? (
+              ) : !fileNotAvailable ? (
                 <p className="mb-4 text-center">
                   Este tipo de arquivo não pode ser pré-visualizado.
                 </p>
@@ -52,7 +55,7 @@ const DocumentPreviewDialog = ({
                 </div>
               )}
               
-              {documentUrl && (
+              {!fileNotAvailable && (
                 <Button asChild className="mt-4">
                   <a href={documentUrl} download={document?.title} target="_blank" rel="noreferrer">
                     <Download className="mr-2 h-4 w-4" />
