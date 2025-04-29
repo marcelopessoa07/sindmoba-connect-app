@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,28 +7,17 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const LoginForm = () => {
-  const [loginType, setLoginType] = useState<'email' | 'cpf'>('email');
   const [email, setEmail] = useState('');
-  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const validateForm = () => {
-    if (loginType === 'email' && !email) {
+    if (!email) {
       toast({
         title: "Campo obrigatório",
         description: "Por favor, informe seu e-mail",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (loginType === 'cpf' && !cpf) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Por favor, informe seu CPF",
         variant: "destructive",
       });
       return false;
@@ -54,39 +44,11 @@ const LoginForm = () => {
 
     setIsLoading(true);
 
-    try {
-      const identifier = loginType === 'email' ? email : cpf;
-      
-      console.log(`Attempting login with: ${identifier} and password`);
-      
-      let emailToUse = identifier;
-      
-      if (loginType === 'cpf') {
-        const cpfClean = identifier.replace(/\D/g, '');
-        console.log(`Looking up email for CPF: ${cpfClean}`);
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('cpf', cpfClean)
-          .single();
-          
-        if (profileError) {
-          console.error('Error fetching profile by CPF:', profileError);
-          throw new Error('CPF não encontrado no sistema');
-        }
-        
-        if (!profileData?.email) {
-          console.error('No email found for CPF:', cpfClean);
-          throw new Error('CPF não encontrado no sistema');
-        }
-        
-        emailToUse = profileData.email;
-        console.log(`Found email ${emailToUse} for CPF ${identifier}`);
-      }
+    try {      
+      console.log(`Attempting login with: ${email} and password`);
       
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailToUse,
+        email,
         password,
       });
 
@@ -115,8 +77,6 @@ const LoginForm = () => {
       
       if (error.message?.includes('Invalid login credentials')) {
         errorMessage = "E-mail ou senha incorretos";
-      } else if (error.message?.includes('CPF não encontrado')) {
-        errorMessage = "CPF não encontrado no sistema";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -129,23 +89,6 @@ const LoginForm = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatCPF = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    
-    let formattedValue = digits;
-    if (digits.length > 3) {
-      formattedValue = digits.replace(/^(\d{3})/, '$1.');
-    }
-    if (digits.length > 6) {
-      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})/, '$1.$2.');
-    }
-    if (digits.length > 9) {
-      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})\.(\d{3})/, '$1.$2.$3-');
-    }
-
-    return formattedValue;
   };
 
   return (
@@ -164,63 +107,23 @@ const LoginForm = () => {
         Bem-vindo
       </h1>
       <p className="mb-6 text-center text-gray-600">
-        Entre com seu {loginType === 'email' ? 'e-mail' : 'CPF'} e senha para acessar sua conta
+        Entre com seu e-mail e senha para acessar sua conta
       </p>
 
-      <div className="mb-6 flex rounded-lg border">
-        <button
-          className={`flex-1 py-2 text-center ${
-            loginType === 'email'
-              ? 'bg-sindmoba-primary text-white'
-              : 'bg-white text-gray-700'
-          }`}
-          onClick={() => setLoginType('email')}
-        >
-          E-mail
-        </button>
-        <button
-          className={`flex-1 py-2 text-center ${
-            loginType === 'cpf'
-              ? 'bg-sindmoba-primary text-white'
-              : 'bg-white text-gray-700'
-          }`}
-          onClick={() => setLoginType('cpf')}
-        >
-          CPF
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        {loginType === 'email' ? (
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              E-mail
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <label htmlFor="cpf" className="block text-sm font-medium text-gray-700">
-              CPF
-            </label>
-            <Input
-              id="cpf"
-              type="text"
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChange={(e) => setCpf(formatCPF(e.target.value))}
-              maxLength={14}
-              required
-            />
-          </div>
-        )}
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            E-mail
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
