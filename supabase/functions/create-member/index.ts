@@ -35,7 +35,8 @@ serve(async (req) => {
       specialty,
       registration_number,
       address,
-      current_job
+      current_job,
+      document_id
     } = requestData
     
     if (!email) {
@@ -78,7 +79,8 @@ serve(async (req) => {
         specialty,
         registration_number,
         address,
-        current_job
+        current_job,
+        document_id
       })
       .eq('id', userId)
     

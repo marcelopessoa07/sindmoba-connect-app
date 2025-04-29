@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon, Download } from 'lucide-react';
+import { FileUploader } from '@/components/FileUploader';
 
 interface MemberRegistrationProps {
   onRegistrationSuccess?: () => void;
@@ -26,6 +27,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedDocument, setUploadedDocument] = useState<{id: string, name: string, size: number} | null>(null);
   const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -72,6 +74,11 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     if (error) setError(null);
   };
 
+  const handleFileUploaded = (fileData: { id: string; name: string; size: number }) => {
+    setUploadedDocument(fileData);
+    if (error) setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -96,6 +103,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
           phone: formData.phone,
           address: formData.address,
           current_job: formData.currentJob,
+          document_id: uploadedDocument?.id,
         },
       });
 
@@ -134,6 +142,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         address: '',
         currentJob: '',
       });
+      setUploadedDocument(null);
       
       // Call the success callback if provided
       if (onRegistrationSuccess) {
@@ -270,6 +279,39 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
             onChange={handleChange}
             placeholder="Cargo atual"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">
+            Documento (PDF)
+          </label>
+          
+          {!uploadedDocument ? (
+            <FileUploader 
+              bucket="registration-documents"
+              acceptedFileTypes={['application/pdf']}
+              maxFileSize={5}
+              onFileUploaded={handleFileUploaded}
+            />
+          ) : (
+            <div className="flex items-center justify-between p-2 border rounded-md">
+              <div className="flex items-center space-x-2">
+                <Download className="h-4 w-4 text-gray-500" />
+                <span className="text-sm truncate max-w-xs">{uploadedDocument.name}</span>
+                <span className="text-xs text-gray-500">
+                  ({(uploadedDocument.size / 1024).toFixed(1)} KB)
+                </span>
+              </div>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setUploadedDocument(null)}
+              >
+                Remover
+              </Button>
+            </div>
+          )}
         </div>
 
         <Button 
