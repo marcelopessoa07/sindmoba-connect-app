@@ -58,7 +58,9 @@ import {
   Users,
   HelpCircle,
   Newspaper,
-  Folder
+  Folder,
+  RefreshCw,
+  Mail
 } from 'lucide-react';
 
 type SpecialtyType = 'pml' | 'pol' | '';
@@ -92,6 +94,7 @@ const AdminPage = () => {
     specialty: '' as SpecialtyType,
     role: '',
   });
+  const [resendingEmail, setResendingEmail] = useState(false);
   const { toast } = useToast();
   
   const roles = ["admin", "member"];
@@ -237,6 +240,35 @@ const AdminPage = () => {
     }
   };
   
+  const handleResendInvite = async (member: Member) => {
+    try {
+      setResendingEmail(true);
+      
+      const { error } = await supabase.functions.invoke('send-invite', {
+        body: { 
+          email: member.email,
+          name: member.full_name || member.email
+        }
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Email reenviado',
+        description: `Um novo email de convite foi enviado para ${member.email}.`,
+      });
+    } catch (error: any) {
+      console.error('Error resending invite:', error);
+      toast({
+        title: 'Erro ao reenviar email',
+        description: error.message || 'Não foi possível reenviar o email de convite. Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+  
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -310,6 +342,8 @@ const AdminPage = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => openViewDialog(member)}
+                            className="mx-1"
+                            title="Visualizar"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -317,13 +351,27 @@ const AdminPage = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditDialog(member)}
+                            className="mx-1"
+                            title="Editar"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleResendInvite(member)}
+                            className="mx-1"
+                            disabled={resendingEmail}
+                            title="Reenviar email de cadastro"
+                          >
+                            <Mail className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openDeleteDialog(member)}
+                            className="mx-1"
+                            title="Excluir"
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -398,19 +446,30 @@ const AdminPage = () => {
                   </div>
                 </div>
               )}
-              <DialogFooter>
+              <DialogFooter className="flex justify-between">
                 <Button 
                   variant="outline"
-                  onClick={() => {
-                    setIsViewDialogOpen(false);
-                    viewingMember && openEditDialog(viewingMember);
-                  }}
+                  onClick={() => handleResendInvite(viewingMember!)}
+                  disabled={resendingEmail || !viewingMember}
+                  className="flex items-center gap-2"
                 >
-                  <Pencil className="h-4 w-4 mr-2" /> Editar
+                  <Mail className="h-4 w-4" /> Reenviar Email de Cadastro
                 </Button>
-                <DialogClose asChild>
-                  <Button>Fechar</Button>
-                </DialogClose>
+                <div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setIsViewDialogOpen(false);
+                      viewingMember && openEditDialog(viewingMember);
+                    }}
+                    className="mr-2"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                  </Button>
+                  <DialogClose asChild>
+                    <Button>Fechar</Button>
+                  </DialogClose>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -426,6 +485,15 @@ const AdminPage = () => {
                     <>
                       <div className="text-center mb-4">
                         <p className="text-gray-500">{editingMember.email}</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleResendInvite(editingMember)}
+                          disabled={resendingEmail}
+                          className="mt-2 flex items-center gap-2"
+                        >
+                          <Mail className="h-4 w-4" /> Reenviar Email de Cadastro
+                        </Button>
                       </div>
                       
                       <div className="grid w-full gap-2">

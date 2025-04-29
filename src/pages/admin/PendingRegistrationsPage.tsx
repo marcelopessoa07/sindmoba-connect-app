@@ -26,7 +26,7 @@ type ProfileWithStatus = {
 };
 
 // Define a type for raw profile data from database
-interface RawProfile {
+type RawProfile = {
   id: string;
   full_name: string | null;
   email: string | null;
@@ -35,7 +35,7 @@ interface RawProfile {
   created_at: string | null;
   status: string | null;
   [key: string]: any;
-}
+};
 
 const PendingRegistrationsPage = () => {
   const [pendingUsers, setPendingUsers] = useState<ProfileWithStatus[]>([]);
