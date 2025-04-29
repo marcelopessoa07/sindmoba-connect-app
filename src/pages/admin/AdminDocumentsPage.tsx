@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Clock, X, Eye, Download, Trash2, Check, Search } from 'lucide-react';
+import { FileText, Upload, Clock, X, Eye, Download, Trash2, Check, Search, MessageSquare } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 import { 
   Form,
@@ -305,7 +305,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>Enviar Novo Documento</DialogTitle>
+          <DialogTitle>Enviar Nova Comunicação</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -494,7 +494,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                   <Clock className="mr-2 h-4 w-4 animate-spin" />
                   Enviando...
                 </>
-              ) : 'Enviar Documento'}
+              ) : 'Enviar Comunicação'}
             </Button>
           </DialogFooter>
         </form>
@@ -663,22 +663,22 @@ const AdminDocumentsPage = () => {
   };
 
   return (
-    <AdminLayout title="Gerenciamento de Documentos">
+    <AdminLayout title="Gerenciamento de Comunicações e Documentos">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <p className="text-gray-600">
-            Gerencie os documentos disponibilizados aos associados.
+            Gerencie as comunicações e documentos disponibilizados aos associados.
           </p>
           
           <Button onClick={() => setIsDialogOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
-            Enviar Documento
+            Enviar Comunicação
           </Button>
         </div>
         
         {loading ? (
           <div className="text-center py-8">
-            <p>Carregando documentos...</p>
+            <p>Carregando comunicações e documentos...</p>
           </div>
         ) : documents.length > 0 ? (
           <div className="space-y-4">
@@ -733,15 +733,15 @@ const AdminDocumentsPage = () => {
           </div>
         ) : (
           <div className="text-center py-8 rounded-lg border bg-white shadow-sm">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhum documento</h3>
+            <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Nenhuma comunicação</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Não há documentos disponíveis. Comece enviando um novo documento.
+              Não há comunicações ou documentos disponíveis. Comece enviando uma nova comunicação.
             </p>
             <div className="mt-6">
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
-                Enviar Documento
+                Enviar Comunicação
               </Button>
             </div>
           </div>
