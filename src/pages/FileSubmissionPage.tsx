@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,9 +108,10 @@ const FileSubmissionPage = () => {
       
       console.log("Bucket created successfully:", data);
       
-      // Fix: Properly type the bucket_name parameter for RPC call
-      const { error: policyError } = await supabase
-        .rpc('create_storage_policies', { bucket_name_param: 'member-submissions' });
+      // Call the edge function to create storage policies
+      const { error: policyError } = await supabase.functions.invoke('create-storage-policies', {
+        body: { bucket_name_param: 'member-submissions' }
+      });
         
       if (policyError) {
         console.error("Error creating RLS policies:", policyError);
