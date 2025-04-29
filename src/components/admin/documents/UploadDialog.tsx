@@ -19,11 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import FileUploader from '@/components/FileUploader';
+import { FileUploader } from '@/components/FileUploader';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+
+// Export file categories for use in other components
+export const fileCategories = [
+  { value: 'estatuto', label: 'Estatuto do SINDMOBA' },
+  { value: 'atas', label: 'Atas de assembleias' },
+  { value: 'convenios', label: 'Convênios e acordos coletivos' },
+  { value: 'comunicados', label: 'Comunicados oficiais' },
+  { value: 'outros', label: 'Outros documentos' }
+];
 
 interface UploadDialogProps {
   open: boolean;
@@ -167,20 +176,23 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
             console.error("Error adding recipients:", recipientError);
           }
         } else if (selectedSpecialties.length > 0) {
-          // Add document for selected specialties
+          // Add document for selected specialties - Fix for type safety
           const recipientsData = selectedSpecialties.map(specialty => ({
             document_id: documentData.id,
-            specialty: specialty,
+            specialty: specialty === 'pml' || specialty === 'pol' ? specialty : null,
             recipient_type: 'specialty',
             created_at: now
           }));
 
-          const { error: recipientError } = await supabase
-            .from('document_recipients')
-            .insert(recipientsData);
+          // Insert each recipient individually to avoid type issues
+          for (const recipient of recipientsData) {
+            const { error: recipientError } = await supabase
+              .from('document_recipients')
+              .insert(recipient);
 
-          if (recipientError) {
-            console.error("Error adding recipients:", recipientError);
+            if (recipientError) {
+              console.error("Error adding recipient:", recipientError);
+            }
           }
         }
       }
@@ -246,11 +258,11 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="estatuto">Estatuto do SINDMOBA</SelectItem>
-                <SelectItem value="atas">Atas de assembleias</SelectItem>
-                <SelectItem value="convenios">Convênios e acordos coletivos</SelectItem>
-                <SelectItem value="comunicados">Comunicados oficiais</SelectItem>
-                <SelectItem value="outros">Outros documentos</SelectItem>
+                {fileCategories.map(cat => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -298,8 +310,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           <div className="space-y-2">
             <Label>Arquivo</Label>
             <FileUploader 
-              onFileSelect={handleFileChange} 
-              maxSize={10}
+              bucket="documents"
               acceptedFileTypes={[
                 'application/pdf',
                 'application/msword',
@@ -307,7 +318,9 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
               ]}
-              disabled={uploading}
+              maxFileSize={10}
+              onFileUploaded={({ name, size }) => setFile({ name, size } as File)}
+              onUploadProgress={(isUploading) => setUploading(isUploading)}
             />
             {file && (
               <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-gray-50">
