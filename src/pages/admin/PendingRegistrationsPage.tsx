@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from "@/hooks/use-toast";
-import { Mail, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Eye, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // Define a simpler interface for pending registrations
 interface PendingRegistration {
@@ -42,9 +60,11 @@ const PendingRegistrationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<PendingRegistration | null>(null);
   const [processingAction, setProcessingAction] = useState(false);
-  const [resendingEmail, setResendingEmail] = useState(false);
+  const [formData, setFormData] = useState<Partial<PendingRegistration>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,6 +105,25 @@ const PendingRegistrationsPage = () => {
   const openRejectionDialog = (registration: PendingRegistration) => {
     setSelectedRegistration(registration);
     setIsRejectionDialogOpen(true);
+  };
+
+  const openViewDialog = (registration: PendingRegistration) => {
+    setSelectedRegistration(registration);
+    setIsViewDialogOpen(true);
+  };
+
+  const openEditDialog = (registration: PendingRegistration) => {
+    setSelectedRegistration(registration);
+    setFormData({
+      full_name: registration.full_name,
+      cpf: registration.cpf,
+      phone: registration.phone,
+      registration_number: registration.registration_number,
+      specialty: registration.specialty,
+      address: registration.address,
+      current_job: registration.current_job,
+    });
+    setIsEditDialogOpen(true);
   };
 
   const handleApproveRegistration = async () => {
@@ -168,32 +207,50 @@ const PendingRegistrationsPage = () => {
     }
   };
   
-  const handleResendInvite = async (registration: PendingRegistration) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+  
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      [field]: value,
+    });
+  };
+  
+  const handleUpdateRegistration = async () => {
+    if (!selectedRegistration) return;
+    
+    setProcessingAction(true);
+    
     try {
-      setResendingEmail(true);
-      
-      const { error } = await supabase.functions.invoke('send-invite', {
-        body: { 
-          email: registration.email,
-          name: registration.full_name || registration.email
-        }
-      });
+      const { error } = await supabase
+        .from('pending_registrations')
+        .update(formData)
+        .eq('id', selectedRegistration.id);
 
       if (error) throw error;
-      
+
+      setIsEditDialogOpen(false);
       toast({
-        title: 'Email reenviado',
-        description: `Um novo email de convite foi enviado para ${registration.email}.`,
+        title: 'Solicitação atualizada',
+        description: `A solicitação de ${selectedRegistration.full_name || selectedRegistration.email} foi atualizada com sucesso.`,
       });
+      
+      fetchPendingRegistrations(); // Refresh the list
     } catch (error: any) {
-      console.error('Error resending invite:', error);
+      console.error('Error updating registration:', error);
       toast({
-        title: 'Erro ao reenviar email',
-        description: error.message || 'Não foi possível reenviar o email de convite. Tente novamente.',
+        title: 'Erro ao atualizar solicitação',
+        description: error.message || 'Ocorreu um erro ao atualizar a solicitação. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
-      setResendingEmail(false);
+      setProcessingAction(false);
     }
   };
 
@@ -259,12 +316,20 @@ const PendingRegistrationsPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleResendInvite(registration)}
+                      onClick={() => openViewDialog(registration)}
                       className="mx-1"
-                      disabled={resendingEmail}
-                      title="Reenviar email"
+                      title="Visualizar"
                     >
-                      <Mail className="h-4 w-4 text-blue-500" />
+                      <Eye className="h-4 w-4 text-blue-500" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(registration)}
+                      className="mx-1"
+                      title="Editar"
+                    >
+                      <Pencil className="h-4 w-4 text-orange-500" />
                     </Button>
                     {registration.document_id && (
                       <Button
@@ -354,6 +419,210 @@ const PendingRegistrationsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Solicitação</DialogTitle>
+          </DialogHeader>
+          {selectedRegistration && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">Nome Completo</h3>
+                  <p className="font-medium">{selectedRegistration.full_name || 'Não informado'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Email</h3>
+                  <p>{selectedRegistration.email}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">CPF</h3>
+                  <p>{selectedRegistration.cpf || 'Não informado'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Telefone</h3>
+                  <p>{selectedRegistration.phone || 'Não informado'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">Especialidade</h3>
+                  <p>{getSpecialtyLabel(selectedRegistration.specialty)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Nº de Registro</h3>
+                  <p>{selectedRegistration.registration_number || 'Não informado'}</p>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm text-gray-500">Endereço</h3>
+                <p>{selectedRegistration.address || 'Não informado'}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm text-gray-500">Local de Trabalho Atual</h3>
+                <p>{selectedRegistration.current_job || 'Não informado'}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm text-gray-500">Data da Solicitação</h3>
+                <p>{formatDate(selectedRegistration.created_at)}</p>
+              </div>
+              
+              {selectedRegistration.document_id && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => viewDocument(selectedRegistration.document_id)}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" /> Visualizar Documento
+                </Button>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setIsViewDialogOpen(false);
+                selectedRegistration && openEditDialog(selectedRegistration);
+              }}
+              variant="outline"
+              className="mr-2"
+            >
+              <Pencil className="h-4 w-4 mr-2" /> Editar
+            </Button>
+            <DialogClose asChild>
+              <Button>Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar Solicitação</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleUpdateRegistration(); }}>
+            <div className="space-y-4 py-4">
+              {selectedRegistration && (
+                <>
+                  <div className="text-center mb-4">
+                    <p className="text-gray-500">{selectedRegistration.email}</p>
+                  </div>
+                  
+                  <div className="grid w-full gap-2">
+                    <Label htmlFor="full_name">Nome Completo</Label>
+                    <Input
+                      id="full_name"
+                      name="full_name"
+                      value={formData.full_name || ''}
+                      onChange={handleInputChange}
+                      placeholder="Digite o nome completo"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid w-full gap-2">
+                      <Label htmlFor="cpf">CPF</Label>
+                      <Input
+                        id="cpf"
+                        name="cpf"
+                        value={formData.cpf || ''}
+                        onChange={handleInputChange}
+                        placeholder="Digite o CPF"
+                      />
+                    </div>
+                    <div className="grid w-full gap-2">
+                      <Label htmlFor="phone">Telefone</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={formData.phone || ''}
+                        onChange={handleInputChange}
+                        placeholder="Digite o telefone"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid w-full gap-2">
+                      <Label htmlFor="specialty">Especialidade</Label>
+                      <Select 
+                        value={formData.specialty || ''} 
+                        onValueChange={(value) => handleSelectChange('specialty', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a especialidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Não especificado</SelectItem>
+                          <SelectItem value="pml">Perito Médico Legal</SelectItem>
+                          <SelectItem value="pol">Perito Odonto Legal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid w-full gap-2">
+                      <Label htmlFor="registration_number">Nº de Registro</Label>
+                      <Input
+                        id="registration_number"
+                        name="registration_number"
+                        value={formData.registration_number || ''}
+                        onChange={handleInputChange}
+                        placeholder="Digite o número de registro"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid w-full gap-2">
+                    <Label htmlFor="address">Endereço</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address || ''}
+                      onChange={handleInputChange}
+                      placeholder="Digite o endereço"
+                    />
+                  </div>
+                  
+                  <div className="grid w-full gap-2">
+                    <Label htmlFor="current_job">Local de Trabalho Atual</Label>
+                    <Input
+                      id="current_job"
+                      name="current_job"
+                      value={formData.current_job || ''}
+                      onChange={handleInputChange}
+                      placeholder="Digite o local de trabalho atual"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                disabled={processingAction}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                disabled={processingAction}
+              >
+                {processingAction ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
