@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,13 +65,22 @@ const FileSubmissionPage = () => {
     try {
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('member-submissions')
         .upload(filePath, selectedFile);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw new Error(`Erro ao fazer upload do arquivo: ${uploadError.message}`);
+      }
+      
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('member-submissions')
+        .getPublicUrl(filePath);
       
       // Store file metadata in database
       const { error: dbError } = await supabase
@@ -86,7 +96,10 @@ const FileSubmissionPage = () => {
           status: 'pending'
         });
       
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("Database insert error:", dbError);
+        throw new Error(`Erro ao salvar informações do arquivo: ${dbError.message}`);
+      }
       
       setIsSuccess(true);
       toast({
