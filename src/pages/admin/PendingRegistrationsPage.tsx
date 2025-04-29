@@ -23,7 +23,6 @@ type ProfileWithStatus = {
   specialty: Database['public']['Enums']['specialty_type'] | null;
   created_at: string | null;
   status: string | null;
-  // Include other fields if needed
 };
 
 const PendingRegistrationsPage = () => {
@@ -46,7 +45,9 @@ const PendingRegistrationsPage = () => {
 
       if (error) throw error;
       
-      setPendingUsers(data || []);
+      // Ensure we're mapping the data correctly
+      const typedData = (data || []) as ProfileWithStatus[];
+      setPendingUsers(typedData);
     } catch (error) {
       console.error('Error fetching pending users:', error);
       toast({
@@ -61,9 +62,12 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
+      // Use type assertion to create the correct update object
+      const updateData = { status: 'active' } as any;
+      
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' } as unknown as Database['public']['Tables']['profiles']['Update'])
+        .update(updateData)
         .eq('id', userId);
 
       if (updateError) throw updateError;
