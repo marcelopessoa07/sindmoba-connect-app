@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from "@/hooks/use-toast";
-import { Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, CheckCircle, XCircle, FileText } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +32,9 @@ interface PendingRegistration {
   registration_number: string | null;
   specialty: "pml" | "pol" | null;
   created_at: string | null;
+  address: string | null;
+  current_job: string | null;
+  document_id: string | null;
 }
 
 const PendingRegistrationsPage = () => {
@@ -99,7 +101,9 @@ const PendingRegistrationsPage = () => {
           cpf: selectedRegistration.cpf,
           phone: selectedRegistration.phone,
           registration_number: selectedRegistration.registration_number,
-          specialty: selectedRegistration.specialty
+          specialty: selectedRegistration.specialty,
+          address: selectedRegistration.address,
+          current_job: selectedRegistration.current_job
         }
       });
 
@@ -209,6 +213,19 @@ const PendingRegistrationsPage = () => {
     }
   };
 
+  const viewDocument = (documentId: string | null) => {
+    if (!documentId) return;
+    
+    // Get public URL for the document
+    const { data } = supabase.storage
+      .from('registration-documents')
+      .getPublicUrl(documentId);
+
+    if (data.publicUrl) {
+      window.open(data.publicUrl, '_blank');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-gray-600">
@@ -249,6 +266,17 @@ const PendingRegistrationsPage = () => {
                     >
                       <Mail className="h-4 w-4 text-blue-500" />
                     </Button>
+                    {registration.document_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => viewDocument(registration.document_id)}
+                        className="mx-1"
+                        title="Ver documento"
+                      >
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
