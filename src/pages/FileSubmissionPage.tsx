@@ -65,29 +65,54 @@ const FileSubmissionPage = () => {
     try {
       console.log("Starting file upload with user ID:", user.id);
       
-      // Make sure the bucket exists before uploading
-      const { data: buckets, error: bucketsError } = await supabase
-        .storage
-        .listBuckets();
-        
-      if (bucketsError) {
-        console.error("Error listing buckets:", bucketsError);
-      } else {
-        console.log("Available buckets:", buckets.map(b => b.name));
+      // First, create the storage bucket if it doesn't exist
+      try {
+        const { data: bucketExists, error: checkBucketError } = await supabase
+          .storage
+          .getBucket('member-submissions');
+          
+        if (checkBucketError && checkBucketError.message.includes('not found')) {
+          // Bucket doesn't exist, user will need to run the SQL migration
+          console.error("Bucket 'member-submissions' doesn't exist. Please run the SQL migration first");
+          toast({
+            title: "Erro de configuração",
+            description: "O sistema não está configurado corretamente para upload de arquivos. Entre em contato com o administrador.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (bucketError) {
+        console.error("Error checking for bucket:", bucketError);
       }
-
-      // Upload file to Supabase Storage with explicit user ID
+      
+      // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
       console.log("Attempting to upload file to path:", filePath);
       
+      // Set proper content type based on file
+      let contentType;
+      if (selectedFile.type) {
+        contentType = selectedFile.type;
+      } else if (fileExt === 'pdf') {
+        contentType = 'application/pdf';
+      } else if (['jpg', 'jpeg', 'png'].includes(fileExt || '')) {
+        contentType = `image/${fileExt}`;
+      } else if (fileExt === 'doc' || fileExt === 'docx') {
+        contentType = 'application/msword';
+      } else {
+        contentType = 'application/octet-stream';
+      }
+      
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('member-submissions')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType
         });
       
       if (uploadError) {
@@ -107,7 +132,7 @@ const FileSubmissionPage = () => {
           file_url: filePath,
           file_name: selectedFile.name,
           file_size: selectedFile.size,
-          file_type: selectedFile.type,
+          file_type: selectedFile.type || contentType,
           status: 'pending'
         });
       
@@ -140,6 +165,18 @@ const FileSubmissionPage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getDocumentTypeLabel = (value: string) => {
+    const types = {
+      'personal': 'Documento Pessoal',
+      'professional': 'Documento Profissional',
+      'medical': 'Atestado Médico', 
+      'report': 'Relatório',
+      'request': 'Requerimento',
+      'other': 'Outro'
+    };
+    return types[value as keyof typeof types] || value;
   };
 
   return (

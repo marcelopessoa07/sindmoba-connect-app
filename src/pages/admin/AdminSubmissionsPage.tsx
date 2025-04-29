@@ -20,7 +20,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Trash2, CheckCircle, XCircle, File as FileIcon } from 'lucide-react';
+import { Eye, Trash2, CheckCircle, XCircle, File as FileIcon, Download } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -51,6 +51,7 @@ const AdminSubmissionsPage = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Document types for filtering
@@ -128,7 +129,30 @@ const AdminSubmissionsPage = () => {
     }
   };
 
-  const openViewDialog = (submission: Submission) => {
+  const openViewDialog = async (submission: Submission) => {
+    try {
+      // Generate a signed URL with temporary access to the file
+      const { data, error } = await supabase
+        .storage
+        .from('member-submissions')
+        .createSignedUrl(submission.file_url, 60);
+
+      if (error) {
+        console.error("Error creating signed URL:", error);
+        toast({
+          title: 'Erro ao acessar o arquivo',
+          description: 'Não foi possível gerar o link para visualização do arquivo.',
+          variant: 'destructive',
+        });
+        setFileUrl(null);
+      } else {
+        setFileUrl(data.signedUrl);
+      }
+    } catch (err) {
+      console.error("Error generating signed URL:", err);
+      setFileUrl(null);
+    }
+
     setViewingSubmission(submission);
     setIsViewDialogOpen(true);
   };
@@ -186,10 +210,15 @@ const AdminSubmissionsPage = () => {
         
         if (submissionToDelete) {
           // Delete file from storage
-          await supabase
+          const { error: storageError } = await supabase
             .storage
             .from('member-submissions')
             .remove([submissionToDelete.file_url]);
+
+          if (storageError) {
+            console.error("Storage delete error:", storageError);
+            // Continue with deleting the database record even if storage delete fails
+          }
           
           // Delete record from database
           const { error } = await supabase
@@ -206,6 +235,11 @@ const AdminSubmissionsPage = () => {
             title: 'Arquivo excluído',
             description: 'O arquivo foi excluído com sucesso.',
           });
+
+          // Close dialog if the deleted submission is being viewed
+          if (viewingSubmission && viewingSubmission.id === id) {
+            setIsViewDialogOpen(false);
+          }
         }
       } catch (error) {
         console.error('Error deleting submission:', error);
@@ -231,6 +265,19 @@ const AdminSubmissionsPage = () => {
     ? submissions 
     : submissions.filter(sub => sub.status === statusFilter);
 
+  const getDocumentTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      'personal': 'Documento Pessoal',
+      'professional': 'Documento Profissional',
+      'medical': 'Atestado Médico',
+      'report': 'Relatório',
+      'request': 'Requerimento',
+      'other': 'Outro'
+    };
+    
+    return typeMap[type] || type;
+  };
+  
   return (
     <AdminLayout title="Gerenciamento de Arquivos Enviados">
       <div className="space-y-4">
@@ -276,7 +323,7 @@ const AdminSubmissionsPage = () => {
                 {filteredSubmissions.map((submission) => (
                   <TableRow key={submission.id}>
                     <TableCell className="font-medium">{submission.file_name}</TableCell>
-                    <TableCell>{submission.document_type}</TableCell>
+                    <TableCell>{getDocumentTypeLabel(submission.document_type)}</TableCell>
                     <TableCell>{submission.user_name}</TableCell>
                     <TableCell>{formatDate(submission.created_at)}</TableCell>
                     <TableCell>
@@ -361,7 +408,7 @@ const AdminSubmissionsPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm text-gray-500">Tipo de documento</h3>
-                  <p>{viewingSubmission.document_type}</p>
+                  <p>{getDocumentTypeLabel(viewingSubmission.document_type)}</p>
                 </div>
                 <div>
                   <h3 className="text-sm text-gray-500">Status atual</h3>
@@ -394,15 +441,30 @@ const AdminSubmissionsPage = () => {
               </div>
               
               <div className="flex justify-center pt-2">
-                <Button asChild>
-                  <a 
-                    href={`${supabase.storage.from('member-submissions').getPublicUrl(viewingSubmission.file_url).data.publicUrl}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                {fileUrl ? (
+                  <Button asChild>
+                    <a 
+                      href={fileUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Baixar Arquivo
+                    </a>
+                  </Button>
+                ) : (
+                  <Button 
+                    disabled
+                    onClick={() => toast({
+                      title: 'Erro ao acessar o arquivo',
+                      description: 'Não foi possível gerar o link para visualização do arquivo.',
+                      variant: 'destructive',
+                    })}
                   >
-                    Visualizar Arquivo
-                  </a>
-                </Button>
+                    <Download className="mr-2 h-4 w-4" />
+                    Arquivo Indisponível
+                  </Button>
+                )}
               </div>
             </div>
           )}
