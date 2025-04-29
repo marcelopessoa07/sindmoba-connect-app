@@ -53,8 +53,6 @@ export const FileUploader = ({
     
     try {
       // Create an object with the expected properties
-      // Using file.name as a temporary ID since we don't have a real ID from storage yet
-      // In a real implementation, this would come from the storage upload response
       const fileData = {
         id: `temp_${Date.now()}_${file.name.replace(/\s+/g, '_')}`, // Generate a temporary ID
         name: file.name,
