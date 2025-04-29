@@ -67,3 +67,19 @@ export const sendEventReminder = (eventTitle: string, eventDate: string) => {
     icon: '/favicon.ico'
   });
 };
+
+// Notify about new news articles
+export const notifyNewNews = (newsTitle: string) => {
+  sendNotification('Nova notícia publicada', {
+    body: `A notícia "${newsTitle}" foi publicada pelo SINDMOBA.`,
+    icon: '/favicon.ico'
+  });
+};
+
+// Notify about new events
+export const notifyNewEvent = (eventTitle: string, eventDate: string) => {
+  sendNotification('Novo evento agendado', {
+    body: `O evento "${eventTitle}" foi agendado para ${eventDate}.`,
+    icon: '/favicon.ico'
+  });
+};

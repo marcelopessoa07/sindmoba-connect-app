@@ -2,7 +2,12 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { notifyNewDocuments, sendEventReminder } from '@/utils/notifications';
+import { 
+  notifyNewDocuments, 
+  sendEventReminder, 
+  notifyNewNews,
+  notifyNewEvent
+} from '@/utils/notifications';
 import { addDays, isBefore, parseISO, format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -36,16 +41,68 @@ export const useNotifications = () => {
         }
       )
       .subscribe();
+      
+    // Monitor for new documents for all users
+    const allDocumentsChannel = supabase
+      .channel('public:documents:all')
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'documents'
+        },
+        async (payload) => {
+          // Check if this is a document for all users
+          const { data } = await supabase
+            .from('document_recipients')
+            .select('recipient_type')
+            .eq('document_id', payload.new.id)
+            .eq('recipient_type', 'all')
+            .single();
+            
+          if (data) {
+            notifyNewDocuments(payload.new.title);
+          }
+        }
+      )
+      .subscribe();
     
-    return () => {
-      supabase.removeChannel(documentChannel);
-    };
-  }, [user]);
-  
-  // Check for upcoming events and send reminders
-  useEffect(() => {
-    if (!user) return;
+    // Monitor for new news
+    const newsChannel = supabase
+      .channel('public:news')
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'news'
+        },
+        (payload) => {
+          notifyNewNews(payload.new.title);
+        }
+      )
+      .subscribe();
+      
+    // Monitor for new events
+    const eventsChannel = supabase
+      .channel('public:events')
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'events'
+        },
+        (payload) => {
+          const eventDate = format(
+            parseISO(payload.new.start_date), 
+            "dd/MM/yyyy 'às' HH:mm",
+            { locale: pt }
+          );
+          notifyNewEvent(payload.new.title, eventDate);
+        }
+      )
+      .subscribe();
     
+    // Check for upcoming events and send reminders
     const checkUpcomingEvents = async () => {
       const tomorrow = addDays(new Date(), 1);
       tomorrow.setHours(0, 0, 0, 0);
@@ -76,6 +133,10 @@ export const useNotifications = () => {
     const intervalId = setInterval(checkUpcomingEvents, 12 * 60 * 60 * 1000);
     
     return () => {
+      supabase.removeChannel(documentChannel);
+      supabase.removeChannel(allDocumentsChannel);
+      supabase.removeChannel(newsChannel);
+      supabase.removeChannel(eventsChannel);
       clearInterval(intervalId);
     };
   }, [user]);

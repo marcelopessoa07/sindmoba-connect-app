@@ -5,6 +5,8 @@ import MainMenu from '../navigation/MainMenu';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
+import { requestNotificationPermission } from '@/utils/notifications';
+import { useEffect } from 'react';
 
 const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,6 +15,11 @@ const AppLayout = () => {
   
   // Initialize notifications
   useNotifications();
+  
+  // Request notification permissions on first load
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
