@@ -1,9 +1,10 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2, AlertCircle } from 'lucide-react';
+import { Download, Trash2, AlertCircle, FileX } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useEffect, useState } from 'react';
 
 interface DocumentPreviewDialogProps {
   open: boolean;
@@ -21,6 +22,25 @@ const DocumentPreviewDialog = ({
   onDelete
 }: DocumentPreviewDialogProps) => {
   const fileNotAvailable = !documentUrl || documentUrl === '';
+  const [isPdfLoading, setIsPdfLoading] = useState(true);
+  const [pdfError, setPdfError] = useState(false);
+
+  useEffect(() => {
+    // Reset states when dialog opens or document changes
+    if (open) {
+      setIsPdfLoading(true);
+      setPdfError(false);
+    }
+  }, [open, document]);
+
+  const handlePdfLoad = () => {
+    setIsPdfLoading(false);
+  };
+
+  const handlePdfError = () => {
+    setIsPdfLoading(false);
+    setPdfError(true);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -36,11 +56,34 @@ const DocumentPreviewDialog = ({
           {document && (
             <div className="flex flex-col items-center justify-center">
               {!fileNotAvailable && document?.file_type?.includes('pdf') ? (
-                <iframe 
-                  src={`${documentUrl}#toolbar=0`}
-                  className="w-full h-[500px] border rounded"
-                  title={document?.title}
-                />
+                <div className="relative w-full">
+                  {isPdfLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 border rounded">
+                      <div className="flex flex-col items-center">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-2"></div>
+                        <p className="text-sm text-gray-600">Carregando documento...</p>
+                      </div>
+                    </div>
+                  )}
+                  <iframe 
+                    src={`${documentUrl}#toolbar=0`}
+                    className="w-full h-[500px] border rounded"
+                    title={document?.title}
+                    onLoad={handlePdfLoad}
+                    onError={handlePdfError}
+                  />
+                  {pdfError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 border rounded">
+                      <div className="text-center p-6">
+                        <FileX className="mx-auto h-12 w-12 text-red-500 mb-3" />
+                        <p className="mb-2 font-medium">Erro ao carregar o PDF</p>
+                        <p className="text-sm text-gray-500">
+                          O arquivo PDF não pôde ser visualizado. Tente baixá-lo diretamente.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : !fileNotAvailable ? (
                 <p className="mb-4 text-center">
                   Este tipo de arquivo não pode ser pré-visualizado.

@@ -81,7 +81,7 @@ const AdminDocumentsPage = () => {
           const { data, error } = await supabase
             .storage
             .from('documents')
-            .createSignedUrl(filePath, 60);
+            .createSignedUrl(filePath, 300); // Increased expiry to 5 minutes
           
           if (error) {
             console.error('Storage error:', error);

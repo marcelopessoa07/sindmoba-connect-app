@@ -11,7 +11,7 @@ const DocumentsPage = () => {
   useEffect(() => {
     // Log user status to help debug document access
     if (user) {
-      console.log("User authenticated, can access documents");
+      console.log("User authenticated, can access documents", user.id);
     } else {
       console.log("User not authenticated, limited document access");
       
