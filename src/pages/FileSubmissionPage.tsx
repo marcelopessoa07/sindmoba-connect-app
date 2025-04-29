@@ -63,24 +63,39 @@ const FileSubmissionPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Upload file to Supabase Storage
+      console.log("Starting file upload with user ID:", user.id);
+      
+      // Make sure the bucket exists before uploading
+      const { data: buckets, error: bucketsError } = await supabase
+        .storage
+        .listBuckets();
+        
+      if (bucketsError) {
+        console.error("Error listing buckets:", bucketsError);
+      } else {
+        console.log("Available buckets:", buckets.map(b => b.name));
+      }
+
+      // Upload file to Supabase Storage with explicit user ID
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
+      console.log("Attempting to upload file to path:", filePath);
+      
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('member-submissions')
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) {
         console.error("Storage upload error:", uploadError);
         throw new Error(`Erro ao fazer upload do arquivo: ${uploadError.message}`);
       }
       
-      // Get the public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('member-submissions')
-        .getPublicUrl(filePath);
+      console.log("File uploaded successfully:", uploadData);
       
       // Store file metadata in database
       const { error: dbError } = await supabase
