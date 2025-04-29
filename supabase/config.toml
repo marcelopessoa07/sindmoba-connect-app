@@ -46,3 +46,7 @@ verify_jwt = true
 [[functions]]
 name = "send-invite"
 verify_jwt = true
+
+[[functions]]
+name = "create-storage-policies"
+verify_jwt = true

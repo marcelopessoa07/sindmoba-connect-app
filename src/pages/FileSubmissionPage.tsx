@@ -57,7 +57,14 @@ const FileSubmissionPage = () => {
 
   // Function to try to create the bucket if user is admin
   const tryInitializeBucket = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para inicializar o sistema.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -69,12 +76,12 @@ const FileSubmissionPage = () => {
         .eq('id', user.id)
         .single();
         
-      if (profileError || !profileData) {
+      if (profileError) {
+        console.error("Error checking user role:", profileError);
         throw new Error("Não foi possível verificar suas permissões");
       }
       
-      // Only admins can create the bucket
-      if (profileData.role !== 'admin') {
+      if (!profileData || profileData.role !== 'admin') {
         toast({
           title: "Permissão negada",
           description: "Apenas administradores podem inicializar o sistema de arquivos.",
@@ -83,6 +90,8 @@ const FileSubmissionPage = () => {
         setIsSubmitting(false);
         return;
       }
+      
+      console.log("Creating storage bucket 'member-submissions'...");
       
       // Try to create the bucket
       const { data, error } = await supabase
@@ -100,12 +109,20 @@ const FileSubmissionPage = () => {
       console.log("Bucket created successfully:", data);
       
       // Create RLS policies for the bucket
-      // Note: These will need to be done in SQL, we just show a success message
-      // The actual policies should be in the SQL migration
+      // This is done via SQL migrations separately
+      
+      // Update storage policies for the bucket to allow authenticated uploads
+      const { error: policyError } = await supabase
+        .rpc('create_storage_policies', { bucket_name: 'member-submissions' });
+        
+      if (policyError) {
+        console.error("Error creating RLS policies:", policyError);
+        // Continue even if policy creation fails - we'll create them with SQL migration
+      }
       
       toast({
-        title: "Bucket criado com sucesso!",
-        description: "O sistema de arquivos foi inicializado. Agora você pode fazer upload de arquivos.",
+        title: "Sistema inicializado com sucesso!",
+        description: "O sistema de arquivos foi configurado. Agora você pode enviar documentos.",
       });
       
       setBucketInitialized(true);
@@ -113,7 +130,7 @@ const FileSubmissionPage = () => {
     } catch (error: any) {
       console.error("Error initializing bucket:", error);
       toast({
-        title: "Erro ao inicializar bucket",
+        title: "Erro ao inicializar sistema",
         description: error.message || "Ocorreu um erro ao configurar o sistema de arquivos.",
         variant: "destructive",
       });
@@ -180,7 +197,7 @@ const FileSubmissionPage = () => {
           .getBucket('member-submissions');
           
         if (checkBucketError && checkBucketError.message.includes('not found')) {
-          console.error("Bucket 'member-submissions' doesn't exist. Please run the SQL migration first");
+          console.error("Bucket 'member-submissions' doesn't exist");
           toast({
             title: "Erro de configuração",
             description: "O sistema não está configurado corretamente para upload de arquivos. Entre em contato com o administrador.",
@@ -196,7 +213,7 @@ const FileSubmissionPage = () => {
       
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
       console.log("Attempting to upload file to path:", filePath);
@@ -296,7 +313,7 @@ const FileSubmissionPage = () => {
       </p>
       
       {configError && (
-        <div className="rounded-lg border border-red-500 bg-red-100 p-4 text-center mb-6 shadow-sm">
+        <div className="rounded-lg border border-red-500 bg-red-50 p-4 text-center mb-6 shadow-sm">
           <div className="mb-2 flex justify-center">
             <AlertTriangle className="h-6 w-6 text-red-500" />
           </div>
@@ -318,13 +335,13 @@ const FileSubmissionPage = () => {
       )}
       
       {isSuccess ? (
-        <div className="rounded-lg border border-sindmoba-success bg-white p-8 text-center shadow-sm">
+        <div className="rounded-lg border border-green-500 bg-green-50 p-8 text-center shadow-sm">
           <div className="mb-4 flex justify-center">
-            <div className="rounded-full bg-sindmoba-success bg-opacity-10 p-3">
-              <CheckCircle className="h-12 w-12 text-sindmoba-success" />
+            <div className="rounded-full bg-green-100 p-3">
+              <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
           </div>
-          <h3 className="mb-2 text-xl font-bold text-sindmoba-success">Arquivo Enviado!</h3>
+          <h3 className="mb-2 text-xl font-bold text-green-700">Arquivo Enviado!</h3>
           <p className="mb-4 text-gray-600">
             Seu documento foi recebido com sucesso. Nossa equipe irá analisá-lo em breve.
           </p>
@@ -419,7 +436,7 @@ const FileSubmissionPage = () => {
             </div>
           </div>
           
-          <div className="rounded-lg bg-sindmoba-light p-4 text-sm text-gray-700">
+          <div className="rounded-lg bg-blue-50 p-4 text-sm text-gray-700">
             <p>
               <strong>Atenção:</strong> Certifique-se de que todos os documentos estejam legíveis e completos. 
               Arquivos muito grandes podem demorar mais para serem enviados. O tamanho máximo permitido é de 10MB.
@@ -430,7 +447,7 @@ const FileSubmissionPage = () => {
             <Button 
               type="submit" 
               className="bg-sindmoba-primary hover:bg-sindmoba-secondary"
-              disabled={isSubmitting || configError}
+              disabled={isSubmitting || configError || !bucketInitialized}
             >
               {isSubmitting ? (
                 <>
