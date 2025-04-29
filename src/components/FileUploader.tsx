@@ -116,3 +116,7 @@ export const FileUploader = ({
     </div>
   );
 };
+
+// Export the FileUploader component as both default and named export
+// This ensures backward compatibility
+export default FileUploader;

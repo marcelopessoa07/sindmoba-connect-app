@@ -177,21 +177,36 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           }
         } else if (selectedSpecialties.length > 0) {
           // Add document for selected specialties - Fix for type safety
-          const recipientsData = selectedSpecialties.map(specialty => ({
-            document_id: documentData.id,
-            specialty: specialty === 'pml' || specialty === 'pol' ? specialty : null,
-            recipient_type: 'specialty',
-            created_at: now
-          }));
+          // Insert each recipient individually with proper type checking
+          for (const specialty of selectedSpecialties) {
+            // Only insert if the specialty is one of the allowed values
+            if (specialty === 'pml' || specialty === 'pol') {
+              const { error: recipientError } = await supabase
+                .from('document_recipients')
+                .insert({
+                  document_id: documentData.id,
+                  specialty: specialty,
+                  recipient_type: 'specialty',
+                  created_at: now
+                });
 
-          // Insert each recipient individually to avoid type issues
-          for (const recipient of recipientsData) {
-            const { error: recipientError } = await supabase
-              .from('document_recipients')
-              .insert(recipient);
+              if (recipientError) {
+                console.error("Error adding recipient:", recipientError);
+              }
+            } else {
+              console.warn(`Skipping non-supported specialty: ${specialty}`);
+              // Handle non-supported specialties by adding them without a specialty field
+              const { error: recipientError } = await supabase
+                .from('document_recipients')
+                .insert({
+                  document_id: documentData.id,
+                  recipient_type: 'specialty',
+                  created_at: now
+                });
 
-            if (recipientError) {
-              console.error("Error adding recipient:", recipientError);
+              if (recipientError) {
+                console.error("Error adding generic recipient:", recipientError);
+              }
             }
           }
         }
