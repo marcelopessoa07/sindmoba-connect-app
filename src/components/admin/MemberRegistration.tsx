@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, Download } from 'lucide-react';
 
 interface MemberRegistrationProps {
   onRegistrationSuccess?: () => void;
@@ -19,12 +20,15 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     cpf: '',
     specialization: '',
     professionalId: '',
+    phone: '',
+    address: '',
+    currentJob: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error when user starts typing again
@@ -51,6 +55,23 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     if (error) setError(null);
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow digits
+    const digits = e.target.value.replace(/\D/g, '');
+    
+    // Apply phone format: (00) 00000-0000
+    let formattedValue = digits;
+    if (digits.length > 2) {
+      formattedValue = digits.replace(/^(\d{2})/, '($1) ');
+    }
+    if (digits.length > 7) {
+      formattedValue = formattedValue.replace(/^(\(\d{2}\) )(\d{5})/, '$1$2-');
+    }
+
+    setFormData(prev => ({ ...prev, phone: formattedValue }));
+    if (error) setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -68,10 +89,13 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
       const { data, error: fnError } = await supabase.functions.invoke('create-member', {
         body: {
           email: formData.email,
-          full_name: formData.fullName, // Changed this line to correctly pass the full name
+          full_name: formData.fullName,
           cpf: formData.cpf,
           specialty: formData.specialization,
           registration_number: formData.professionalId,
+          phone: formData.phone,
+          address: formData.address,
+          current_job: formData.currentJob,
         },
       });
 
@@ -106,6 +130,9 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         cpf: '',
         specialization: '',
         professionalId: '',
+        phone: '',
+        address: '',
+        currentJob: '',
       });
       
       // Call the success callback if provided
@@ -179,6 +206,32 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         </div>
 
         <div className="space-y-2">
+          <label htmlFor="phone" className="text-sm font-medium text-gray-700">
+            Telefone
+          </label>
+          <Input
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handlePhoneChange}
+            maxLength={15}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="address" className="text-sm font-medium text-gray-700">
+            Endereço
+          </label>
+          <Textarea
+            id="address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            placeholder="Endereço completo"
+          />
+        </div>
+
+        <div className="space-y-2">
           <label htmlFor="specialization" className="text-sm font-medium text-gray-700">
             Especialidade *
           </label>
@@ -203,6 +256,19 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
             value={formData.professionalId}
             onChange={handleChange}
             required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="currentJob" className="text-sm font-medium text-gray-700">
+            Cargo Atual
+          </label>
+          <Input
+            id="currentJob"
+            name="currentJob"
+            value={formData.currentJob}
+            onChange={handleChange}
+            placeholder="Cargo atual"
           />
         </div>
 

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from '@/components/ui/use-toast';
+import { FileUploader } from '@/components/FileUploader';
 
 const MembershipPage = () => {
   const [formData, setFormData] = useState({
@@ -24,10 +25,14 @@ const MembershipPage = () => {
     professionalId: '',
     type: '',
     workplace: '',
+    currentJob: '',
     comments: '',
   });
   
+  const [fileId, setFileId] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -91,14 +96,23 @@ const MembershipPage = () => {
     }));
   };
 
+  const handleFileUploaded = (fileData: { id: string, name: string, size: number }) => {
+    setFileId(fileData.id);
+    setFileName(fileData.name);
+  };
+
+  const handleUploadProgress = (isCurrentlyUploading: boolean) => {
+    setIsUploading(isCurrentlyUploading);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.fullName || !formData.cpf || !formData.email || !formData.type) {
+    if (!formData.fullName || !formData.cpf || !formData.email || !formData.type || !fileId) {
       toast({
         title: "Erro no formulário",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        description: "Por favor, preencha todos os campos obrigatórios e envie o documento PDF.",
         variant: "destructive",
       });
       return;
@@ -126,8 +140,11 @@ const MembershipPage = () => {
         professionalId: '',
         type: '',
         workplace: '',
+        currentJob: '',
         comments: '',
       });
+      setFileId(null);
+      setFileName(null);
     }, 1500);
   };
 
@@ -323,6 +340,43 @@ const MembershipPage = () => {
                 onChange={handleChange}
               />
             </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="currentJob" className="block text-sm font-medium text-gray-700">
+                Cargo Atual
+              </label>
+              <Input
+                id="currentJob"
+                name="currentJob"
+                value={formData.currentJob}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Documentação */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Documentação</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Documento PDF *
+              </label>
+              <FileUploader 
+                bucket="registration-documents"
+                acceptedFileTypes={["application/pdf"]}
+                maxFileSize={5}
+                onFileUploaded={handleFileUploaded}
+                onUploadProgress={handleUploadProgress}
+              />
+              {fileName && (
+                <p className="text-sm text-green-600">
+                  Arquivo enviado: {fileName}
+                </p>
+              )}
+            </div>
           </div>
         </div>
         
@@ -349,7 +403,7 @@ const MembershipPage = () => {
           <Button 
             type="submit" 
             className="bg-sindmoba-primary hover:bg-sindmoba-secondary"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploading || !fileId}
           >
             {isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
           </Button>

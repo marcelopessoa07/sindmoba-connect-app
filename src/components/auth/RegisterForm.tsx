@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
+import { FileUploader } from '@/components/FileUploader';
 
 const RegisterForm = () => {
   const [fullName, setFullName] = useState('');
@@ -14,7 +16,13 @@ const RegisterForm = () => {
   const [specialization, setSpecialization] = useState('');
   const [professionalId, setProfessionalId] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [currentJob, setCurrentJob] = useState('');
+  const [fileId, setFileId] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -35,7 +43,10 @@ const RegisterForm = () => {
           cpf,
           specialty: specialization,
           registration_number: professionalId,
-          phone
+          phone,
+          address,
+          current_job: currentJob,
+          document_id: fileId
         });
 
       console.log("Registration request response:", { data, error });
@@ -109,6 +120,16 @@ const RegisterForm = () => {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(formatPhoneNumber(e.target.value));
+  };
+
+  const handleFileUploaded = (fileData: { id: string, name: string, size: number }) => {
+    setFileId(fileData.id);
+    setFileName(fileData.name);
+    setFileSize(fileData.size);
+  };
+
+  const handleUploadProgress = (isCurrentlyUploading: boolean) => {
+    setIsUploading(isCurrentlyUploading);
   };
 
   return (
@@ -190,6 +211,19 @@ const RegisterForm = () => {
         </div>
 
         <div className="space-y-2">
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+            Endereço Completo
+          </label>
+          <Textarea
+            id="address"
+            placeholder="Rua, número, bairro, cidade, estado e CEP"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
           <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
             Especialidade
           </label>
@@ -218,11 +252,43 @@ const RegisterForm = () => {
           />
         </div>
 
+        <div className="space-y-2">
+          <label htmlFor="currentJob" className="block text-sm font-medium text-gray-700">
+            Cargo Atual
+          </label>
+          <Input
+            id="currentJob"
+            type="text"
+            placeholder="Seu cargo atual"
+            value={currentJob}
+            onChange={(e) => setCurrentJob(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Documentação (PDF)
+          </label>
+          <FileUploader 
+            bucket="registration-documents"
+            acceptedFileTypes={["application/pdf"]}
+            maxFileSize={5}
+            onFileUploaded={handleFileUploaded}
+            onUploadProgress={handleUploadProgress}
+          />
+          {fileName && (
+            <p className="text-sm text-green-600">
+              Arquivo enviado: {fileName}
+            </p>
+          )}
+        </div>
+
         <div className="pt-2">
           <Button 
             type="submit" 
             className="w-full bg-sindmoba-primary hover:bg-sindmoba-secondary"
-            disabled={isLoading}
+            disabled={isLoading || isUploading || !fileId}
           >
             {isLoading ? 'Enviando...' : 'Solicitar Filiação'}
           </Button>
