@@ -72,7 +72,10 @@ serve(async (req: Request) => {
     let warning = null;
     try {
       const { error: inviteError } = await supabaseAdmin.functions.invoke('send-invite', {
-        body: { email }
+        body: { 
+          email,
+          name: full_name || email
+        }
       });
 
       if (inviteError) {

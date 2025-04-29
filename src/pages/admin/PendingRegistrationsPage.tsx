@@ -25,8 +25,17 @@ type ProfileWithStatus = {
   status: string;
 };
 
-// Define a simpler type for raw profile data from Supabase
-type RawProfileData = Record<string, any>;
+// Define a type for raw profile data from database
+interface RawProfile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  cpf: string | null;
+  specialty: Database['public']['Enums']['specialty_type'] | null;
+  created_at: string | null;
+  status: string | null;
+  [key: string]: any;
+}
 
 const PendingRegistrationsPage = () => {
   const [pendingUsers, setPendingUsers] = useState<ProfileWithStatus[]>([]);
@@ -50,7 +59,7 @@ const PendingRegistrationsPage = () => {
       
       if (data) {
         // Map the data to our ProfileWithStatus type
-        const mappedData: ProfileWithStatus[] = data.map((item: RawProfileData) => ({
+        const mappedData: ProfileWithStatus[] = data.map((item: RawProfile) => ({
           id: item.id,
           full_name: item.full_name,
           email: item.email || '',
