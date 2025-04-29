@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
-// Define a type for the profiles table with status field
+// Define our own type for profile data that includes the status field
 type ProfileWithStatus = {
   id: string;
   full_name: string | null;
@@ -22,7 +22,12 @@ type ProfileWithStatus = {
   cpf: string | null;
   specialty: Database['public']['Enums']['specialty_type'] | null;
   created_at: string | null;
-  status: string | null; // Add status field
+  status: string;
+};
+
+// Type for raw data from supabase
+type RawProfile = Database['public']['Tables']['profiles']['Row'] & {
+  status?: string;
 };
 
 const PendingRegistrationsPage = () => {
@@ -46,15 +51,15 @@ const PendingRegistrationsPage = () => {
       if (error) throw error;
       
       if (data) {
-        // Cast the data to our type and ensure the status field is present
-        const mappedData: ProfileWithStatus[] = data.map(item => ({
+        // Map the data to our ProfileWithStatus type, ensuring status is always a string
+        const mappedData: ProfileWithStatus[] = data.map((item: RawProfile) => ({
           id: item.id,
           full_name: item.full_name,
           email: item.email || '',
           cpf: item.cpf,
           specialty: item.specialty,
           created_at: item.created_at,
-          status: item.status || 'pending'  // Ensure status is always set
+          status: item.status || 'pending'
         }));
         
         setPendingUsers(mappedData);
@@ -75,12 +80,9 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Use an explicit update object with only the status field
-      const updateData = { status: 'active' };
-      
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({ status: 'active' })
         .eq('id', userId);
 
       if (updateError) throw updateError;
