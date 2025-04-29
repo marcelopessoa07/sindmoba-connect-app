@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
+import { RefreshCw, Mail } from 'lucide-react';
 
 // Define our own type for profile data that includes the status field
 type ProfileWithStatus = {
@@ -25,21 +26,27 @@ type ProfileWithStatus = {
   status: string;
 };
 
-// Define a type for raw profile data from database
+// Define a type for raw profile data from database with required status field
 type RawProfile = {
   id: string;
   full_name: string | null;
-  email: string | null;
+  email: string;
   cpf: string | null;
   specialty: Database['public']['Enums']['specialty_type'] | null;
   created_at: string | null;
-  status: string | null;
-  [key: string]: any;
+  status: string;
+  // Add other profile properties that might come from the database
+  phone?: string;
+  registration_number?: string;
+  address?: string;
+  role?: string;
+  updated_at?: string;
 };
 
 const PendingRegistrationsPage = () => {
   const [pendingUsers, setPendingUsers] = useState<ProfileWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,7 +66,7 @@ const PendingRegistrationsPage = () => {
       
       if (data) {
         // Map the data to our ProfileWithStatus type
-        const mappedData: ProfileWithStatus[] = data.map((item: RawProfile) => ({
+        const mappedData: ProfileWithStatus[] = data.map((item: any) => ({
           id: item.id,
           full_name: item.full_name,
           email: item.email || '',
@@ -111,6 +118,32 @@ const PendingRegistrationsPage = () => {
     }
   };
 
+  const handleResendInvite = async (userId: string, email: string) => {
+    try {
+      setResendingEmail(userId);
+      
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: { email }
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Email reenviado',
+        description: `Um novo email de convite foi enviado para ${email}.`,
+      });
+    } catch (error: any) {
+      console.error('Error resending invite:', error);
+      toast({
+        title: 'Erro ao reenviar email',
+        description: 'Edge Function returned a non-2xx status code',
+        variant: 'destructive',
+      });
+    } finally {
+      setResendingEmail(null);
+    }
+  };
+
   return (
     <AdminLayout title="Solicitações de Filiação Pendentes">
       <div className="space-y-4">
@@ -149,7 +182,15 @@ const PendingRegistrationsPage = () => {
                     <TableCell>
                       {new Date(user.created_at || '').toLocaleDateString('pt-BR')}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResendInvite(user.id, user.email)}
+                        disabled={resendingEmail === user.id}
+                      >
+                        {resendingEmail === user.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

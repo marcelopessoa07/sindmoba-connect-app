@@ -3,26 +3,51 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Received request to send invite email');
+    
     // Get request data
     const requestData = await req.json();
     const { email } = requestData;
     
+    if (!email) {
+      throw new Error('Email is required');
+    }
+    
+    console.log('Processing invite for email:', email);
+    
+    // Check if RESEND_API_KEY is configured
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY is not configured');
+      throw new Error('Email service configuration is missing');
+    }
+    
+    const resend = new Resend(resendApiKey);
+    
     // Create Supabase client with admin rights to generate password reset link
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase environment variables are not configured');
+      throw new Error('Backend configuration is incomplete');
+    }
+    
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl,
+      supabaseServiceKey,
       { auth: { persistSession: false } }
     );
     
@@ -39,20 +64,29 @@ serve(async (req) => {
     
     const name = profileData?.full_name || 'Associado';
     
+    console.log('Generating password reset link for user:', name);
+    
     // Generate password reset link that user will use to set their initial password
     const { data: passwordResetData, error: passwordResetError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: 'http://localhost:3000/login'
+        redirectTo: `${Deno.env.get('FRONTEND_URL') || 'http://localhost:3000'}/login`
       }
     });
     
     if (passwordResetError) {
+      console.error('Error generating password reset link:', passwordResetError);
       throw new Error(`Error generating password reset link: ${passwordResetError.message}`);
     }
     
+    if (!passwordResetData?.properties?.action_link) {
+      console.error('No action link generated');
+      throw new Error('Failed to generate password reset link');
+    }
+    
     const resetLink = passwordResetData.properties.action_link;
+    console.log('Reset link generated successfully');
     
     // Send email with password reset link
     const { data, error } = await resend.emails.send({
@@ -75,14 +109,17 @@ serve(async (req) => {
     }
 
     console.log('Email sent successfully to:', email);
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ success: true, message: 'Email sent successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error('Error in send-invite function:', error.message);
     return new Response(
-      JSON.stringify({ error: error.message || 'Error sending invitation email' }),
+      JSON.stringify({ 
+        error: error.message || 'Error sending invitation email',
+        success: false 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
