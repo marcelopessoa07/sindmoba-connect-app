@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
-// Define a simpler type for profiles with status
+// Define a simplified type for profiles with status
 type ProfileWithStatus = {
   id: string;
   full_name: string | null;
@@ -45,9 +45,22 @@ const PendingRegistrationsPage = () => {
 
       if (error) throw error;
       
-      // Ensure we're mapping the data correctly
-      const typedData = (data || []) as ProfileWithStatus[];
-      setPendingUsers(typedData);
+      if (data) {
+        // Explicitly map the data to ensure all required fields are present
+        const mappedData: ProfileWithStatus[] = data.map(item => ({
+          id: item.id,
+          full_name: item.full_name,
+          email: item.email,
+          cpf: item.cpf,
+          specialty: item.specialty,
+          created_at: item.created_at,
+          status: item.status
+        }));
+        
+        setPendingUsers(mappedData);
+      } else {
+        setPendingUsers([]);
+      }
     } catch (error) {
       console.error('Error fetching pending users:', error);
       toast({
@@ -62,12 +75,9 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Use type assertion to create the correct update object
-      const updateData = { status: 'active' } as any;
-      
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({ status: 'active' })
         .eq('id', userId);
 
       if (updateError) throw updateError;
