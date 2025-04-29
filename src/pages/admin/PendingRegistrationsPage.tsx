@@ -12,22 +12,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
-// Updated interface to properly match the Supabase profiles table structure
-interface ProfileData {
-  id: string;
-  full_name: string | null;
-  email: string;
-  cpf: string | null;
-  specialty: 'pml' | 'pol' | null;
-  created_at: string | null;
-  role: string | null;
-  phone: string | null;
-  registration_number: string | null;
-  address: string | null;
-  updated_at: string | null;
+// Define the ProfileData interface using the Database types
+type ProfileData = Database['public']['Tables']['profiles']['Row'] & {
   status: string | null;
-}
+};
 
 const PendingRegistrationsPage = () => {
   const [pendingUsers, setPendingUsers] = useState<ProfileData[]>([]);
@@ -49,8 +39,8 @@ const PendingRegistrationsPage = () => {
 
       if (error) throw error;
       
-      // Type assertion to ensure data matches our ProfileData interface
-      setPendingUsers((data || []) as ProfileData[]);
+      // Convert the data to the ProfileData type with explicit type assertion
+      setPendingUsers(data ? data.map(item => ({ ...item, status: item.status || null })) as ProfileData[] : []);
     } catch (error) {
       console.error('Error fetching pending users:', error);
       toast({
@@ -65,10 +55,9 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Properly type the update operation
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' } as Partial<ProfileData>)
+        .update({ status: 'active' })
         .eq('id', userId);
 
       if (updateError) throw updateError;
