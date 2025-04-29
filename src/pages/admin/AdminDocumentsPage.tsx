@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -549,15 +548,23 @@ const AdminDocumentsPage = () => {
       
       if (document.file_url) {
         try {
-          // Extract the file path from the URL
-          const storageFilePathRegex = /\/storage\/v1\/object\/public\/documents\/(.*)/;
-          const match = document.file_url.match(storageFilePathRegex);
+          console.log("Attempting to get signed URL for:", document.file_url);
           
-          if (!match || !match[1]) {
-            throw new Error('Invalid file URL format');
+          // Extract just the filename from the full URL path
+          let filePath = document.file_url;
+          
+          // Handle if the URL is a full Supabase storage URL
+          if (document.file_url.includes('supabase.co/storage/v1/object/public/')) {
+            const bucketName = 'documents';
+            const urlParts = document.file_url.split(`/storage/v1/object/public/${bucketName}/`);
+            if (urlParts.length > 1) {
+              filePath = urlParts[1];
+              console.log("Extracted filePath:", filePath);
+            } else {
+              console.error("Could not extract file path from URL:", document.file_url);
+              throw new Error("Could not extract file path from URL");
+            }
           }
-          
-          const filePath = match[1];
           
           // Generate a temporary URL for file viewing/downloading
           const { data, error } = await supabase
@@ -566,10 +573,12 @@ const AdminDocumentsPage = () => {
             .createSignedUrl(filePath, 60);
           
           if (error) {
+            console.error('Storage error:', error);
             throw error;
           }
           
-          setDocumentUrl(data?.signedUrl || document.file_url);
+          console.log("Signed URL generated successfully:", data.signedUrl);
+          setDocumentUrl(data?.signedUrl || '');
         } catch (storageError) {
           console.error('Error generating document URL:', storageError);
           setDocumentUrl('');
