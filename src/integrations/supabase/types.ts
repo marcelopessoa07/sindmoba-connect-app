@@ -266,6 +266,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_registrations: {
+        Row: {
+          cpf: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          registration_number: string | null
+          specialty: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          registration_number?: string | null
+          specialty?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          registration_number?: string | null
+          specialty?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

@@ -13,8 +13,7 @@ const RegisterForm = () => {
   const [cpf, setCpf] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [professionalId, setProfessionalId] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -22,40 +21,30 @@ const RegisterForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
-      toast({
-        title: "Erro de validação",
-        description: "As senhas não correspondem",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
-      console.log("Starting registration process");
+      console.log("Starting registration request process");
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            cpf,
-            specialty: specialization,
-            registration_number: professionalId,
-          },
-        },
-      });
+      // Submit to pending_registrations instead of creating a user
+      const { data, error } = await supabase
+        .from('pending_registrations')
+        .insert({
+          email,
+          full_name: fullName,
+          cpf,
+          specialty: specialization,
+          registration_number: professionalId,
+          phone
+        });
 
-      console.log("Registration response:", { data, error });
+      console.log("Registration request response:", { data, error });
 
       if (error) throw error;
 
       toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu e-mail para confirmar o cadastro.",
+        title: "Solicitação enviada com sucesso!",
+        description: "Sua solicitação foi recebida. Nossa equipe entrará em contato em breve.",
       });
       
       // Wait a short time before navigating to ensure the toast is seen
@@ -69,12 +58,12 @@ const RegisterForm = () => {
       let errorMessage = error.message;
       
       // Handle specific error cases
-      if (error.message.includes("User already registered")) {
-        errorMessage = "Este e-mail já está cadastrado. Por favor tente fazer login.";
+      if (error.message.includes("duplicate key value violates unique constraint")) {
+        errorMessage = "Este e-mail já está em uso. Por favor use outro e-mail ou entre em contato com o suporte.";
       }
       
       toast({
-        title: "Erro no cadastro",
+        title: "Erro ao enviar solicitação",
         description: errorMessage,
         variant: "destructive",
       });
@@ -100,6 +89,26 @@ const RegisterForm = () => {
     }
 
     return formattedValue;
+  };
+
+  const formatPhoneNumber = (value: string) => {
+    // Remove anything that's not a digit
+    const digits = value.replace(/\D/g, '');
+    
+    // Apply phone format: (00) 00000-0000
+    let formattedValue = digits;
+    if (digits.length > 2) {
+      formattedValue = digits.replace(/^(\d{2})/, '($1) ');
+    }
+    if (digits.length > 7) {
+      formattedValue = formattedValue.replace(/^(\(\d{2}\) )(\d{5})/, '$1$2-');
+    }
+
+    return formattedValue;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(formatPhoneNumber(e.target.value));
   };
 
   return (
@@ -166,6 +175,21 @@ const RegisterForm = () => {
         </div>
 
         <div className="space-y-2">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            Telefone
+          </label>
+          <Input
+            id="phone"
+            type="text"
+            placeholder="(00) 00000-0000"
+            value={phone}
+            onChange={handlePhoneChange}
+            maxLength={15}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
           <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
             Especialidade
           </label>
@@ -191,36 +215,6 @@ const RegisterForm = () => {
             value={professionalId}
             onChange={(e) => setProfessionalId(e.target.value)}
             required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Senha
-          </label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-            Confirmar Senha
-          </label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={6}
           />
         </div>
 

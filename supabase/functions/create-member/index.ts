@@ -1,106 +1,180 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { Resend } from "npm:resend@2.0.0";
 
+// Initialize Supabase client with service role key to access admin features
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+// Initialize Resend for email sending
+const resend = new Resend(Deno.env.get("RESEND_API_KEY") || "");
+
+// CORS headers for cross-origin requests
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req: Request) => {
+interface CreateMemberRequest {
+  email: string;
+  full_name: string | null;
+  cpf: string | null;
+  phone: string | null;
+  registration_number: string | null;
+  specialty: string | null;
+}
+
+// Generate a random password of specified length
+function generateRandomPassword(length = 10) {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_-+=";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+}
+
+const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the request body
-    const { email, full_name, cpf, specialty, registration_number } = await req.json();
-
-    // Validate input
+    console.log("Received request to create a member");
+    
+    const { email, full_name, cpf, phone, registration_number, specialty } = await req.json() as CreateMemberRequest;
+    
     if (!email) {
-      return new Response(
-        JSON.stringify({ error: 'Email é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error("Email is required");
     }
 
-    // Create a Supabase client with the service role key (allows bypassing RLS)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
-
-    // Generate a random password (user will reset it via email)
-    const tempPassword = Math.random().toString(36).slice(-8);
-
-    // Create the user
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+    console.log(`Creating member with email: ${email}`);
+    
+    // Generate a random password for the initial user account
+    const generatedPassword = generateRandomPassword();
+    
+    // Create the user in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: tempPassword,
-      email_confirm: true,
+      password: generatedPassword,
+      email_confirm: true, // Skip email confirmation
+      user_metadata: {
+        full_name,
+        cpf,
+        phone,
+        specialty,
+        registration_number,
+      }
     });
 
-    if (userError) {
-      console.error('Error creating user:', userError);
-      throw new Error(`Erro ao criar usuário: ${userError.message}`);
+    if (authError) {
+      console.error("Error creating auth user:", authError);
+      throw new Error(`Failed to create user account: ${authError.message}`);
     }
 
-    // We need the user ID to update the profile
-    const userId = userData.user.id;
-
-    // Ensure the user's profile is updated with the full name and other details
+    console.log("Auth user created successfully:", authData.user.id);
+    
+    // Update the user profile with additional information
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
         full_name,
         cpf,
+        phone,
         specialty,
         registration_number,
-        updated_at: new Date().toISOString(),
       })
-      .eq('id', userId);
+      .eq('id', authData.user.id);
 
     if (profileError) {
-      console.error('Error updating profile:', profileError);
-      // Continue with the process even if profile update fails, 
-      // as the user has been created - we'll return a warning instead
+      console.error("Error updating profile:", profileError);
+      // Continue despite profile update error
     }
 
-    // Send the user an invite/welcome email with password reset link
-    let warning = null;
-    try {
-      const { error: inviteError } = await supabaseAdmin.functions.invoke('send-invite', {
-        body: { 
-          email,
-          name: full_name || email
-        }
-      });
+    // Get contact settings for the sender email
+    const { data: contactSettings } = await supabaseAdmin
+      .from('contact_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+    
+    const fromEmail = contactSettings?.contact_email || 'contato@sindmoba.org.br';
+    
+    // Get a password reset link for the user to set their own password
+    const { data: { properties }, error: resetLinkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email,
+    });
 
-      if (inviteError) {
-        console.error('Error sending invite:', inviteError);
-        warning = 'Usuário criado, mas falha ao enviar email de convite. O usuário precisará usar a opção de recuperação de senha.';
+    if (resetLinkError) {
+      console.error("Error generating reset link:", resetLinkError);
+      throw new Error(`Failed to generate recovery link: ${resetLinkError.message}`);
+    }
+
+    const resetLink = properties?.action_link;
+    console.log("Reset link generated:", resetLink);
+
+    // Send the welcome email with password reset link
+    if (resetLink) {
+      try {
+        const emailResult = await resend.emails.send({
+          from: `SINDMOBA <${fromEmail}>`,
+          to: [email],
+          subject: 'Bem-vindo ao SINDMOBA - Configure sua senha',
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #336699;">Bem-vindo ao SINDMOBA!</h1>
+              <p>Olá ${full_name || ''},</p>
+              <p>Sua solicitação de filiação ao SINDMOBA foi <strong>aprovada</strong>!</p>
+              <p>Para acessar sua conta, por favor defina sua senha clicando no botão abaixo:</p>
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="${resetLink}" style="background-color: #336699; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">Definir Senha</a>
+              </div>
+              <p>Este link expira em 24 horas.</p>
+              <p>Se você não solicitou esta filiação, por favor ignore este email.</p>
+              <p>Atenciosamente,<br>Equipe SINDMOBA</p>
+            </div>
+          `,
+        });
+        
+        console.log("Welcome email sent:", emailResult);
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        // Still return success even if email fails
       }
-    } catch (inviteErr) {
-      console.error('Exception sending invite:', inviteErr);
-      warning = 'Usuário criado, mas falha ao enviar email de convite. O usuário precisará usar a opção de recuperação de senha.';
     }
 
-    // Return success with user data (and any warnings)
     return new Response(
       JSON.stringify({ 
-        message: 'Usuário criado com sucesso', 
-        userId, 
-        warning 
+        success: true, 
+        message: "Member created successfully", 
+        userId: authData.user.id 
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
     );
-  } catch (error) {
-    console.error('Error in create-member function:', error);
+
+  } catch (error: any) {
+    console.error("Error in create-member function:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message || "An unknown error occurred", 
+        success: false 
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
     );
   }
-});
+};
+
+serve(handler);

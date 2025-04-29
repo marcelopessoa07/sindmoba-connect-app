@@ -61,7 +61,8 @@ const PendingRegistrationsPage = () => {
         throw error;
       }
 
-      setPendingRegistrations(data || []);
+      // Cast to our PendingRegistration type
+      setPendingRegistrations(data as unknown as PendingRegistration[]);
     } catch (error: any) {
       console.error('Error fetching pending registrations:', error);
       toast({
