@@ -14,9 +14,16 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
-// Create a type for the profile with status
-type ProfileWithStatus = Database['public']['Tables']['profiles']['Row'] & {
-  status?: string;
+// Define a simpler type for profiles with status
+type ProfileWithStatus = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  cpf: string | null;
+  specialty: Database['public']['Enums']['specialty_type'] | null;
+  created_at: string | null;
+  status: string | null;
+  // Include other fields if needed
 };
 
 const PendingRegistrationsPage = () => {
@@ -54,7 +61,6 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Use a type assertion that matches what Supabase expects for this table
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ status: 'active' } as unknown as Database['public']['Tables']['profiles']['Update'])
