@@ -61,6 +61,14 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   // Select which menu items to display based on user role
   const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
 
+  // Handle logout with confirmation
+  const handleLogout = async () => {
+    if (window.confirm('Tem certeza que deseja sair?')) {
+      await signOut();
+      closeMenu();
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-white p-4">
       <div className="mb-6 flex items-center justify-center">
@@ -133,10 +141,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
       <div className="mt-auto">
         <button
           className="flex w-full items-center justify-center rounded-md border border-sindmoba-danger py-2 text-sindmoba-danger"
-          onClick={() => {
-            signOut();
-            closeMenu();
-          }}
+          onClick={handleLogout}
         >
           Sair
         </button>
