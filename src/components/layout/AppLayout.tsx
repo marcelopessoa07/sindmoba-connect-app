@@ -1,12 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import MainMenu from '../navigation/MainMenu';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
 import { requestNotificationPermission } from '@/utils/notifications';
-import { useEffect } from 'react';
 
 const AppLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);

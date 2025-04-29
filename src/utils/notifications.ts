@@ -83,3 +83,19 @@ export const notifyNewEvent = (eventTitle: string, eventDate: string) => {
     icon: '/favicon.ico'
   });
 };
+
+// Check if the notification should be delivered to this user
+export const shouldDeliverNotification = (userSpecialty: string | null, targetSpecialty: string | null): boolean => {
+  // If no target specialty is specified (null or 'all'), deliver to everyone
+  if (!targetSpecialty || targetSpecialty === 'all') {
+    return true;
+  }
+  
+  // If the notification is targeted but user has no specialty, don't deliver
+  if (!userSpecialty) {
+    return false;
+  }
+  
+  // Deliver if the user's specialty matches the target specialty
+  return userSpecialty === targetSpecialty;
+};

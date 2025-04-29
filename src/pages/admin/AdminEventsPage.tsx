@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, Pencil, Trash2, Plus, CalendarDays } from 'lucide-react';
 
@@ -41,6 +42,7 @@ interface Event {
   end_date: string;
   location: string | null;
   created_at: string | null;
+  notify_target?: string;
 }
 
 const AdminEventsPage = () => {
@@ -59,6 +61,7 @@ const AdminEventsPage = () => {
     end_date: '',
     end_time: '',
     location: '',
+    notify_target: 'all',
   });
   const { toast } = useToast();
 
@@ -70,6 +73,13 @@ const AdminEventsPage = () => {
     'Evento Social',
     'Protesto',
     'Conferência'
+  ];
+
+  // Notification target options
+  const notificationTargets = [
+    { value: 'all', label: 'Todos os membros' },
+    { value: 'pml', label: 'Apenas PML' },
+    { value: 'pol', label: 'Apenas POL' },
   ];
 
   useEffect(() => {
@@ -116,6 +126,13 @@ const AdminEventsPage = () => {
     });
   };
 
+  const handleNotifyTargetChange = (value: string) => {
+    setFormData({
+      ...formData,
+      notify_target: value,
+    });
+  };
+
   const formatDateTimeForDisplay = (dateTimeString: string) => {
     const date = new Date(dateTimeString);
     return {
@@ -139,6 +156,7 @@ const AdminEventsPage = () => {
       end_date: tomorrow.toISOString().split('T')[0],
       end_time: '17:00',
       location: '',
+      notify_target: 'all',
     });
     setIsDialogOpen(true);
   };
@@ -157,6 +175,7 @@ const AdminEventsPage = () => {
       end_date: endDateTime.date,
       end_time: endDateTime.time,
       location: event.location || '',
+      notify_target: event.notify_target || 'all',
     });
     setIsDialogOpen(true);
   };
@@ -195,17 +214,23 @@ const AdminEventsPage = () => {
         return;
       }
       
+      // Prepare event data
+      const eventData = {
+        title: formData.title,
+        description: formData.description || null,
+        event_type: formData.event_type,
+        start_date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
+        location: formData.location || null,
+        notify_target: formData.notify_target,
+      };
+      
       if (editingEvent) {
         // Update existing event
         const { error } = await supabase
           .from('events')
           .update({
-            title: formData.title,
-            description: formData.description || null,
-            event_type: formData.event_type,
-            start_date: startDateTime.toISOString(),
-            end_date: endDateTime.toISOString(),
-            location: formData.location || null,
+            ...eventData,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingEvent.id);
@@ -220,12 +245,7 @@ const AdminEventsPage = () => {
         const { error } = await supabase
           .from('events')
           .insert({
-            title: formData.title,
-            description: formData.description || null,
-            event_type: formData.event_type,
-            start_date: startDateTime.toISOString(),
-            end_date: endDateTime.toISOString(),
-            location: formData.location || null,
+            ...eventData,
             created_by: (await supabase.auth.getUser()).data.user?.id,
           });
 
@@ -472,6 +492,23 @@ const AdminEventsPage = () => {
                   placeholder="Digite o local do evento"
                 />
               </div>
+              
+              {/* Notification target */}
+              <div className="grid w-full gap-2">
+                <Label>Notificar</Label>
+                <RadioGroup 
+                  value={formData.notify_target} 
+                  onValueChange={handleNotifyTargetChange}
+                  className="flex flex-col space-y-2"
+                >
+                  {notificationTargets.map((target) => (
+                    <div key={target.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={target.value} id={`notify-${target.value}`} />
+                      <Label htmlFor={`notify-${target.value}`}>{target.label}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -529,6 +566,17 @@ const AdminEventsPage = () => {
                   <p>{viewingEvent.description}</p>
                 </div>
               )}
+              
+              <div>
+                <h3 className="font-semibold text-sm text-gray-500">Notificações</h3>
+                <p>
+                  {viewingEvent.notify_target === 'all' 
+                    ? 'Todos os membros' 
+                    : viewingEvent.notify_target === 'pml'
+                      ? 'Apenas PML'
+                      : 'Apenas POL'}
+                </p>
+              </div>
             </div>
           )}
           <DialogFooter>

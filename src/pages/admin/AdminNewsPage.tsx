@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, Pencil, Trash2, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 
@@ -35,6 +36,7 @@ interface NewsItem {
   is_featured: boolean;
   published_at: string | null;
   created_at: string | null;
+  notify_target?: string;
 }
 
 const AdminNewsPage = () => {
@@ -53,8 +55,16 @@ const AdminNewsPage = () => {
     content: '',
     is_featured: false,
     published_at: new Date().toISOString().split('T')[0],
+    notify_target: 'all',
   });
   const { toast } = useToast();
+
+  // Notification target options
+  const notificationTargets = [
+    { value: 'all', label: 'Todos os membros' },
+    { value: 'pml', label: 'Apenas PML' },
+    { value: 'pol', label: 'Apenas POL' },
+  ];
 
   useEffect(() => {
     fetchNewsItems();
@@ -100,6 +110,13 @@ const AdminNewsPage = () => {
     });
   };
 
+  const handleNotifyTargetChange = (value: string) => {
+    setFormData({
+      ...formData,
+      notify_target: value,
+    });
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedImage = e.target.files[0];
@@ -122,6 +139,7 @@ const AdminNewsPage = () => {
       content: '',
       is_featured: false,
       published_at: new Date().toISOString().split('T')[0],
+      notify_target: 'all',
     });
     setImage(null);
     setImagePreview(null);
@@ -136,6 +154,7 @@ const AdminNewsPage = () => {
       content: item.content,
       is_featured: item.is_featured || false,
       published_at: item.published_at ? new Date(item.published_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      notify_target: item.notify_target || 'all',
     });
     setImage(null);
     setImagePreview(item.image_url ? supabase.storage.from('news-images').getPublicUrl(item.image_url).data.publicUrl : null);
@@ -168,18 +187,24 @@ const AdminNewsPage = () => {
         imageUrl = fileName;
       }
       
+      // Prepare news data
+      const newsData = {
+        title: formData.title,
+        summary: formData.summary,
+        content: formData.content,
+        is_featured: formData.is_featured,
+        published_at: new Date(formData.published_at).toISOString(),
+        notify_target: formData.notify_target,
+        ...(image ? { image_url: imageUrl } : {}),
+      };
+      
       if (editingItem) {
         // Update existing news item
         const { error } = await supabase
           .from('news')
           .update({
-            title: formData.title,
-            summary: formData.summary,
-            content: formData.content,
-            is_featured: formData.is_featured,
-            published_at: new Date(formData.published_at).toISOString(),
+            ...newsData,
             updated_at: new Date().toISOString(),
-            ...(image ? { image_url: imageUrl } : {}),
           })
           .eq('id', editingItem.id);
 
@@ -193,12 +218,7 @@ const AdminNewsPage = () => {
         const { error } = await supabase
           .from('news')
           .insert({
-            title: formData.title,
-            summary: formData.summary,
-            content: formData.content,
-            image_url: imageUrl,
-            is_featured: formData.is_featured,
-            published_at: new Date(formData.published_at).toISOString(),
+            ...newsData,
             created_by: (await supabase.auth.getUser()).data.user?.id,
           });
 
@@ -452,6 +472,23 @@ const AdminNewsPage = () => {
                 )}
               </div>
               
+              {/* Notification target */}
+              <div className="grid w-full gap-2">
+                <Label>Notificar</Label>
+                <RadioGroup 
+                  value={formData.notify_target} 
+                  onValueChange={handleNotifyTargetChange}
+                  className="flex flex-col space-y-2"
+                >
+                  {notificationTargets.map((target) => (
+                    <div key={target.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={target.value} id={`notify-news-${target.value}`} />
+                      <Label htmlFor={`notify-news-${target.value}`}>{target.label}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+              
               <div className="flex items-center space-x-2">
                 <Switch 
                   checked={formData.is_featured} 
@@ -517,6 +554,17 @@ const AdminNewsPage = () => {
                 <span className={`px-2 py-1 rounded text-xs ${viewingItem.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                   {viewingItem.is_featured ? 'Sim' : 'Não'}
                 </span>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold">Notificações enviadas para:</h3>
+                <p>
+                  {viewingItem.notify_target === 'all' 
+                    ? 'Todos os membros' 
+                    : viewingItem.notify_target === 'pml'
+                      ? 'Apenas PML'
+                      : 'Apenas POL'}
+                </p>
               </div>
             </div>
           )}
