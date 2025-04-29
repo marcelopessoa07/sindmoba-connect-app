@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,21 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
+  DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Clock, X, Eye, Download } from 'lucide-react';
+import { FileText, Upload, Clock, X, Eye, Download, Trash2 } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
 
 type SpecialtyType = Database["public"]["Enums"]["specialty_type"];
@@ -354,6 +366,8 @@ const AdminDocumentsPage = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [documentUrl, setDocumentUrl] = useState('');
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
   const { toast } = useToast();
 
   const fetchDocuments = async () => {
@@ -391,10 +405,11 @@ const AdminDocumentsPage = () => {
       
       if (document.file_url) {
         // Generate a temporary URL for file viewing/downloading
+        const fileUrl = document.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', '');
         const { data, error } = await supabase
           .storage
           .from('documents')
-          .createSignedUrl(document.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', ''), 60);
+          .createSignedUrl(fileUrl, 60);
         
         if (error) {
           throw error;
@@ -411,6 +426,74 @@ const AdminDocumentsPage = () => {
       toast({
         title: 'Erro ao gerar URL do documento',
         description: 'Não foi possível visualizar o documento.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const openDeleteDialog = (document: any) => {
+    setDocumentToDelete(document);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      // If there's a file, delete it from storage
+      if (documentToDelete.file_url) {
+        const fileUrl = documentToDelete.file_url.replace('https://agennmpmizazbapvqkqq.supabase.co/storage/v1/object/public/documents/', '');
+        
+        const { error: storageError } = await supabase
+          .storage
+          .from('documents')
+          .remove([fileUrl]);
+        
+        if (storageError) {
+          console.error('Error deleting file from storage:', storageError);
+          // Continue with deleting the record even if file deletion fails
+        }
+      }
+
+      // Delete related records in document_recipients
+      const { error: recipientsError } = await supabase
+        .from('document_recipients')
+        .delete()
+        .eq('document_id', documentToDelete.id);
+      
+      if (recipientsError) {
+        console.error('Error deleting document recipients:', recipientsError);
+      }
+
+      // Delete the document record
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentToDelete.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the local state
+      setDocuments(documents.filter(doc => doc.id !== documentToDelete.id));
+      
+      toast({
+        title: 'Documento excluído',
+        description: 'O documento foi excluído com sucesso.',
+      });
+
+      // Close the dialogs if they're open
+      setIsDeleteDialogOpen(false);
+      if (selectedDocument && selectedDocument.id === documentToDelete.id) {
+        setIsPreviewDialogOpen(false);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: 'Erro ao excluir documento',
+        description: 'Não foi possível excluir o documento. Tente novamente.',
         variant: 'destructive',
       });
     }
@@ -489,6 +572,16 @@ const AdminDocumentsPage = () => {
                       <Eye className="mr-1 h-4 w-4" />
                       <span>Visualizar</span>
                     </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center text-red-500 hover:text-red-700"
+                      onClick={() => openDeleteDialog(document)}
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" />
+                      <span>Excluir</span>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -553,8 +646,48 @@ const AdminDocumentsPage = () => {
               </div>
             )}
           </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                setIsPreviewDialogOpen(false);
+                openDeleteDialog(selectedDocument);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir Documento
+            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.
+              {documentToDelete?.title && (
+                <p className="mt-2 font-medium text-foreground">{documentToDelete.title}</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteDocument}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <UploadDialog
         open={isDialogOpen}
