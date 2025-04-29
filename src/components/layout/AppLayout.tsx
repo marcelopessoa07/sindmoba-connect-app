@@ -18,33 +18,6 @@ const AppLayout = () => {
     setMenuOpen(!menuOpen);
   };
 
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case '/main':
-        return 'SINDMOBA';
-      case '/news':
-        return 'Últimas Notícias';
-      case '/events':
-        return 'Agenda e Eventos';
-      case '/documents':
-        return 'Documentos e Arquivos';
-      case '/legislation':
-        return 'Legislação e Direitos';
-      case '/faq':
-        return 'Perguntas Frequentes';
-      case '/membership':
-        return 'Filiação ao Sindicato';
-      case '/file-submission':
-        return 'Envio de Arquivos';
-      case '/contact':
-        return 'Contato e Atendimento';
-      case '/profile':
-        return 'Meu Perfil';
-      default:
-        return 'SINDMOBA';
-    }
-  };
-
   const handleBackClick = () => {
     if (location.pathname === '/main') {
       if (confirm('Deseja sair do aplicativo?')) {
@@ -73,7 +46,7 @@ const AppLayout = () => {
               alt="SINDMOBA Logo" 
               className="h-10 object-contain mr-4" 
             />
-            <h1 className="text-xl font-bold text-white">{getPageTitle()}</h1>
+            <h1 className="text-xl font-bold text-white">SINDMOBA</h1>
           </div>
           <Button
             variant="ghost"
