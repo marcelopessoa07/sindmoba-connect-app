@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,9 @@ type ProfileWithStatus = {
   status: string;
 };
 
+// Define a simpler type for raw profile data from Supabase
+type RawProfileData = Record<string, any>;
+
 const PendingRegistrationsPage = () => {
   const [pendingUsers, setPendingUsers] = useState<ProfileWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +50,7 @@ const PendingRegistrationsPage = () => {
       
       if (data) {
         // Map the data to our ProfileWithStatus type
-        const mappedData: ProfileWithStatus[] = data.map((item: any) => ({
+        const mappedData: ProfileWithStatus[] = data.map((item: RawProfileData) => ({
           id: item.id,
           full_name: item.full_name,
           email: item.email || '',
@@ -74,12 +78,9 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Use any type for the update data to avoid TypeScript errors
-      const updateData: any = { status: 'active' };
-      
       const { error: updateError } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({ status: 'active' } as Record<string, any>)
         .eq('id', userId);
 
       if (updateError) throw updateError;

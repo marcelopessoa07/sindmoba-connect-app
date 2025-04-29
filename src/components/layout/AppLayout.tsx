@@ -40,12 +40,7 @@ const AppLayout = () => {
           >
             Voltar
           </Button>
-          <div className="flex items-center">
-            <img 
-              src="/lovable-uploads/66f7fa3e-a2bd-4a64-bf5d-c6cb1846a31d.png" 
-              alt="SINDMOBA Logo" 
-              className="h-10 object-contain mr-4" 
-            />
+          <div className="flex items-center justify-center">
             <h1 className="text-xl font-bold text-white">SINDMOBA</h1>
           </div>
           <Button
