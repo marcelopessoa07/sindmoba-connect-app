@@ -313,6 +313,7 @@ export type Database = {
           address: string | null
           cpf: string | null
           created_at: string | null
+          current_job: string | null
           email: string
           full_name: string | null
           id: string
@@ -326,6 +327,7 @@ export type Database = {
           address?: string | null
           cpf?: string | null
           created_at?: string | null
+          current_job?: string | null
           email: string
           full_name?: string | null
           id: string
@@ -339,6 +341,7 @@ export type Database = {
           address?: string | null
           cpf?: string | null
           created_at?: string | null
+          current_job?: string | null
           email?: string
           full_name?: string | null
           id?: string
