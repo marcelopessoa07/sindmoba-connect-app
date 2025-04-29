@@ -13,8 +13,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
-// Updated interface that properly matches the Supabase profiles table
-// and includes the status field which is being used in our code
+// Updated interface to properly match the Supabase profiles table structure
 interface ProfileData {
   id: string;
   full_name: string | null;
@@ -27,7 +26,7 @@ interface ProfileData {
   registration_number: string | null;
   address: string | null;
   updated_at: string | null;
-  status: string | null;  // Added this missing field
+  status: string | null;
 }
 
 const PendingRegistrationsPage = () => {
@@ -41,6 +40,7 @@ const PendingRegistrationsPage = () => {
 
   const fetchPendingUsers = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -49,8 +49,8 @@ const PendingRegistrationsPage = () => {
 
       if (error) throw error;
       
-      // Ensure data is properly typed
-      setPendingUsers(data as ProfileData[] || []);
+      // Type assertion to ensure data matches our ProfileData interface
+      setPendingUsers((data || []) as ProfileData[]);
     } catch (error) {
       console.error('Error fetching pending users:', error);
       toast({
@@ -65,10 +65,10 @@ const PendingRegistrationsPage = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      // Update the status in the profiles table
+      // Properly type the update operation
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ status: 'active' })
+        .update({ status: 'active' } as Partial<ProfileData>)
         .eq('id', userId);
 
       if (updateError) throw updateError;
