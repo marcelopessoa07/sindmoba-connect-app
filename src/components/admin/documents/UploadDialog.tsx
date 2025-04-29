@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +37,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useForm } from 'react-hook-form';
+import { Database } from '@/integrations/supabase/types';
+
+// Define the specialty type to match the database type
+type SpecialtyType = Database['public']['Enums']['specialty_type'];
 
 // Export file categories for use in other components
 export const fileCategories = [
@@ -55,15 +58,22 @@ const recipientTypes = [
   { value: 'specific', label: 'Associados específicos' }
 ];
 
-// Specialties
-const specialties = [
+// Specialties - make sure these match the values in the database enum
+const specialties: { value: SpecialtyType; label: string }[] = [
   { value: 'pml', label: 'Perícia Médica Legal' },
-  { value: 'pol', label: 'Polícia Ostensiva Local' },
+  { value: 'pol', label: 'Polícia Ostensiva Local' }
+];
+
+// Other specialty options for UI display only (not used in database)
+const additionalSpecialties = [
   { value: 'onc', label: 'Oncologia' },
   { value: 'cir', label: 'Cirurgia' },
   { value: 'psq', label: 'Psiquiatria' },
   { value: 'ort', label: 'Ortopedia' }
 ];
+
+// Combined specialties for UI display
+const displaySpecialties = [...specialties, ...additionalSpecialties];
 
 interface UploadDialogProps {
   open: boolean;
@@ -82,12 +92,12 @@ interface Member {
   id: string;
   full_name: string;
   email: string;
-  specialty?: string;
+  specialty?: SpecialtyType;
   registration_number?: string;
 }
 
 const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps) => {
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [selectedSpecialties, setSelectedSpecialties] = useState<SpecialtyType[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
   const [availableMembers, setAvailableMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
@@ -177,7 +187,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     }
   };
 
-  const handleSpecialtyChange = (specialty: string) => {
+  const handleSpecialtyChange = (specialty: SpecialtyType) => {
     setSelectedSpecialties(prev => 
       prev.includes(specialty)
         ? prev.filter(item => item !== specialty)
@@ -196,6 +206,7 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     });
   };
 
+  // Updated to handle File directly
   const handleFileChange = (uploadedFile: File | null) => {
     console.log("File selected:", uploadedFile);
     setFile(uploadedFile);
@@ -293,13 +304,18 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           }
         } 
         else if (values.recipientType === 'specialty' && selectedSpecialties.length > 0) {
-          // Add document for selected specialties
-          for (const specialty of selectedSpecialties) {
+          // Add document for selected specialties - Filter only valid specialties
+          const validSpecialties = selectedSpecialties.filter(spec => 
+            specialties.some(s => s.value === spec)
+          );
+          
+          // Add document for each valid specialty
+          for (const specialty of validSpecialties) {
             const { error: recipientError } = await supabase
               .from('document_recipients')
               .insert({
                 document_id: documentData.id,
-                specialty: specialty,
+                specialty: specialty, // This now matches the database enum type
                 recipient_type: 'specialty',
                 created_at: now
               });
@@ -445,19 +461,38 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                         <div className="mt-2 space-y-2 pl-6 border-t pt-2">
                           <p className="text-sm text-muted-foreground mb-2">Selecione as especialidades:</p>
                           <div className="grid grid-cols-2 gap-2">
-                            {specialties.map((specialty) => (
-                              <div key={specialty.value} className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`spec-${specialty.value}`}
-                                  checked={selectedSpecialties.includes(specialty.value)}
-                                  onCheckedChange={() => handleSpecialtyChange(specialty.value)}
-                                  disabled={uploading}
-                                />
-                                <Label htmlFor={`spec-${specialty.value}`} className="font-normal">
-                                  {specialty.label}
-                                </Label>
-                              </div>
-                            ))}
+                            {displaySpecialties.map((specialty) => {
+                              // Determine if this specialty is valid for the database
+                              const isValidDatabaseSpecialty = specialties.some(s => s.value === specialty.value);
+                              
+                              return (
+                                <div key={specialty.value} className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={`spec-${specialty.value}`}
+                                    checked={selectedSpecialties.includes(specialty.value as SpecialtyType)}
+                                    onCheckedChange={() => {
+                                      if (isValidDatabaseSpecialty) {
+                                        handleSpecialtyChange(specialty.value as SpecialtyType);
+                                      } else {
+                                        toast({
+                                          title: "Especialidade não disponível",
+                                          description: "Esta especialidade ainda não está cadastrada no sistema.",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    disabled={uploading || !isValidDatabaseSpecialty}
+                                  />
+                                  <Label 
+                                    htmlFor={`spec-${specialty.value}`} 
+                                    className={`font-normal ${!isValidDatabaseSpecialty ? "text-muted-foreground" : ""}`}
+                                  >
+                                    {specialty.label}
+                                    {!isValidDatabaseSpecialty && <span className="text-xs ml-1">(em breve)</span>}
+                                  </Label>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

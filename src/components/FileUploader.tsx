@@ -1,5 +1,5 @@
 
-import { useState, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,7 +9,7 @@ interface FileUploaderProps {
   bucket: string;
   acceptedFileTypes: string[];
   maxFileSize: number; // in MB
-  onFileUploaded: (fileData: { id: string, name: string, size: number }) => void;
+  onFileUploaded: (fileData: File | null) => void;
   onUploadProgress?: (isUploading: boolean) => void;
 }
 
@@ -22,6 +22,7 @@ export const FileUploader = ({
 }: FileUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,34 +53,19 @@ export const FileUploader = ({
     if (onUploadProgress) onUploadProgress(true);
     
     try {
-      // Generate a unique file name to avoid collisions
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = fileName;
-      
-      // Upload the file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-      
-      if (error) throw error;
-      
-      onFileUploaded({
-        id: data.path,
-        name: file.name,
-        size: file.size
-      });
+      // Pass the file directly to the parent component
+      onFileUploaded(file);
       
       toast({
-        title: "Arquivo enviado com sucesso",
-        description: "Seu documento foi enviado com sucesso.",
+        title: "Arquivo selecionado com sucesso",
+        description: "Seu documento foi anexado ao formulário.",
       });
       
     } catch (error: any) {
-      console.error("Error uploading file:", error);
+      console.error("Error selecting file:", error);
       toast({
-        title: "Erro ao enviar arquivo",
-        description: error.message || "Houve um erro ao fazer upload do arquivo. Tente novamente.",
+        title: "Erro ao selecionar arquivo",
+        description: error.message || "Houve um erro ao selecionar o arquivo. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -100,8 +86,9 @@ export const FileUploader = ({
           disabled={isUploading}
         >
           <Upload className="mr-2 h-4 w-4" />
-          {isUploading ? 'Enviando...' : 'Selecionar PDF'}
+          {isUploading ? 'Enviando...' : 'Selecionar arquivo'}
           <input
+            ref={fileInputRef}
             type="file"
             accept={acceptedFileTypes.join(',')}
             onChange={handleFileChange}
@@ -111,7 +98,7 @@ export const FileUploader = ({
         </Button>
       </div>
       <p className="text-xs text-gray-500">
-        Tamanho máximo: {maxFileSize}MB. Formatos aceitos: PDF.
+        Tamanho máximo: {maxFileSize}MB. Formatos aceitos: PDF, Word, Excel.
       </p>
     </div>
   );
