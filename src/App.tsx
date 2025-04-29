@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import AppLayout from "./components/layout/AppLayout";
 import MainPage from "./pages/MainPage";
 import NewsPage from "./pages/NewsPage";
+import NewsDetailPage from "./pages/NewsDetailPage";
 import EventsPage from "./pages/EventsPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import LegislationPage from "./pages/LegislationPage";
@@ -65,6 +66,7 @@ const App = () => {
                 <Route path="/admin/faq" element={<AdminFAQPage />} />
                 <Route path="/main" element={<MainPage />} />
                 <Route path="/news" element={<NewsPage />} />
+                <Route path="/news/:id" element={<NewsDetailPage />} />
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/legislation" element={<LegislationPage />} />
