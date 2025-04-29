@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Phone, Mail } from 'lucide-react';
 
+// Define a custom interface for our contact settings
 interface ContactSettings {
   id: string;
   whatsapp_number: string | null;
@@ -35,6 +36,8 @@ const ContactSettingsForm = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      
+      // Use generic fetch method to avoid TypeScript errors while database types update
       const { data, error } = await supabase
         .from('contact_settings')
         .select('*')
@@ -52,11 +55,13 @@ const ContactSettingsForm = () => {
       }
       
       if (data) {
-        setSettings(data as ContactSettings);
+        // Need to cast the data to our ContactSettings type
+        const contactSettings = data as unknown as ContactSettings;
+        setSettings(contactSettings);
         setFormData({
-          whatsapp_number: data.whatsapp_number || '',
-          legal_email: data.legal_email || '',
-          contact_email: data.contact_email || '',
+          whatsapp_number: contactSettings.whatsapp_number || '',
+          legal_email: contactSettings.legal_email || '',
+          contact_email: contactSettings.contact_email || '',
         });
       }
     } catch (error) {
@@ -111,7 +116,8 @@ const ContactSettingsForm = () => {
         if (error) throw error;
         
         if (data && data[0]) {
-          setSettings(data[0] as ContactSettings);
+          // Cast to our ContactSettings type
+          setSettings(data[0] as unknown as ContactSettings);
         }
       }
 

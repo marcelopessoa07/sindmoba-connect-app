@@ -93,6 +93,16 @@ serve(async (req) => {
     
     if (profileError) {
       console.error('Error fetching profile:', profileError);
+      return new Response(
+        JSON.stringify({ 
+          error: `Error fetching profile: ${profileError.message}`,
+          success: false 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
     
     const name = profileData?.full_name || 'Associado';
@@ -140,10 +150,20 @@ serve(async (req) => {
     console.log('Reset link generated successfully');
     
     try {
+      // Get contact settings for the from email address
+      const { data: contactSettings } = await supabaseAdmin
+        .from('contact_settings')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      
+      const fromEmail = contactSettings?.contact_email || 'contato@sindmoba.org.br';
+      
       // Send email with password reset link
       console.log('Attempting to send email with Resend API');
+      console.log(`From address: SINDMOBA <${fromEmail}>`);
       const emailResult = await resend.emails.send({
-        from: 'SINDMOBA <contato@sindmoba.org.br>',
+        from: `SINDMOBA <${fromEmail}>`,
         to: [email],
         subject: 'Bem-vindo ao SINDMOBA - Configure sua senha',
         html: `
