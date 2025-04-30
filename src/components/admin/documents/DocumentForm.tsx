@@ -37,17 +37,17 @@ const formSchema = z.object({
   }),
 });
 
-export type FormData = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
 interface DocumentFormProps {
-  onSubmit: (values: FormData, file: File | null) => Promise<void>;
+  onSubmit: (values: FormValues, file: File | null) => Promise<void>;
   uploading: boolean;
 }
 
 export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
   const [file, setFile] = useState<File | null>(null);
 
-  const form = useForm<FormData>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -60,7 +60,7 @@ export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
     setFile(file);
   };
 
-  const submitForm = (values: FormData) => {
+  const submitForm = (values: FormValues) => {
     onSubmit(values, file);
   };
 
