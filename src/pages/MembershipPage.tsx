@@ -14,6 +14,25 @@ import { Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Define a more specific profile type that includes matricula
+interface ProfileData {
+  id: string;
+  full_name?: string;
+  email: string;
+  phone?: string;
+  registration_number?: string;
+  matricula?: string;
+  address?: string;
+  notes?: string;
+  document_id?: string;
+  updated_at?: string;
+  cpf?: string;
+  created_at?: string;
+  current_job?: string;
+  role?: string;
+  specialty?: "pml" | "pol";
+}
+
 const membershipSchema = z.object({
   name: z.string().min(1, 'Nome completo é obrigatório'),
   email: z.string().email('Email inválido'),
@@ -59,12 +78,15 @@ const MembershipPage = () => {
         if (error) throw error;
         
         if (data) {
-          setValue('name', data.full_name || '');
+          // Explicitly cast data to our ProfileData interface that includes matricula
+          const profileData = data as ProfileData;
+
+          setValue('name', profileData.full_name || '');
           setValue('email', user.email || '');
-          setValue('phone', data.phone || '');
-          setValue('registration_number', data.registration_number || '');
-          setValue('matricula', data.matricula || '');
-          setValue('address', data.address || '');
+          setValue('phone', profileData.phone || '');
+          setValue('registration_number', profileData.registration_number || '');
+          setValue('matricula', profileData.matricula || '');
+          setValue('address', profileData.address || '');
         } else {
           if (user.user_metadata?.full_name) {
             setValue('name', user.user_metadata.full_name);
@@ -187,6 +209,14 @@ const MembershipPage = () => {
     }
   };
 
+  const handleIdDocumentUpload = (file: File | null) => {
+    setIdDocumentFile(file);
+  };
+
+  const handleRegistrationDocumentUpload = (file: File | null) => {
+    setRegistrationDocumentFile(file);
+  };
+
   return (
     <AppLayout>
       <div className="container py-8">
@@ -285,7 +315,7 @@ const MembershipPage = () => {
                     <FileUploader
                       bucket="membership"
                       acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                      maxFileSize={5} // 5MB
+                      maxFileSize={5}
                       onFileUploaded={handleIdDocumentUpload}
                     />
                   </div>
@@ -295,7 +325,7 @@ const MembershipPage = () => {
                     <FileUploader
                       bucket="membership"
                       acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                      maxFileSize={5} // 5MB
+                      maxFileSize={5}
                       onFileUploaded={handleRegistrationDocumentUpload}
                     />
                   </div>
