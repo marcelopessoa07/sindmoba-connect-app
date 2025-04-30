@@ -210,5 +210,5 @@ export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
   );
 };
 
-// Also make FormValues, fileCategories available for reuse
+// Make FormValues available for reuse without redeclaring
 export type { FormValues };
