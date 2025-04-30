@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Eye, Trash2 } from 'lucide-react';
-import { fileCategories } from './UploadDialog';
+import { getCategoryLabel, formatFileSize, formatDate } from './documentUtils';
 
 interface DocumentListItemProps {
   document: any;
@@ -10,25 +10,6 @@ interface DocumentListItemProps {
 }
 
 const DocumentListItem = ({ document, onView, onDelete }: DocumentListItemProps) => {
-  const getCategoryLabel = (categoryValue: string) => {
-    const category = fileCategories.find(cat => cat.value === categoryValue);
-    return category ? category.label : categoryValue;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    else return (bytes / 1048576).toFixed(1) + ' MB';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
   return (
     <div className="border rounded-lg bg-white shadow-sm p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">

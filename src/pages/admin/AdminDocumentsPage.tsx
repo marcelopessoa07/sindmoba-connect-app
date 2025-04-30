@@ -256,8 +256,16 @@ const AdminDocumentsPage = () => {
         )}
       </div>
       
-      {/* These components are conditionally rendered based on state, not using controlled open state */}
-      {isPreviewDialogOpen && (
+      {/* Conditionally render dialogs to prevent infinite render loops */}
+      {isDialogOpen && (
+        <UploadDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onUploadSuccess={fetchDocuments}
+        />
+      )}
+      
+      {isPreviewDialogOpen && selectedDocument && (
         <DocumentPreviewDialog
           open={isPreviewDialogOpen}
           onOpenChange={setIsPreviewDialogOpen}
@@ -267,20 +275,12 @@ const AdminDocumentsPage = () => {
         />
       )}
 
-      {isDeleteDialogOpen && (
+      {isDeleteDialogOpen && documentToDelete && (
         <DeleteConfirmationDialog
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
           documentTitle={documentToDelete?.title}
           onConfirm={handleDeleteDocument}
-        />
-      )}
-      
-      {isDialogOpen && (
-        <UploadDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          onUploadSuccess={fetchDocuments}
         />
       )}
     </AdminLayout>

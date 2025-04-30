@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileUploader } from '@/components/FileUploader';
 import { 
   Select, 
   SelectContent, 
@@ -28,25 +27,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { fileCategories, recipientTypes, specialtyOptions } from './documentUtils';
 
 interface UploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUploadSuccess: () => void;
 }
-
-const fileCategories = [
-  { id: "estatuto", label: "Estatuto do SINDMOBA" },
-  { id: "atas", label: "Atas de assembleias" },
-  { id: "convenios", label: "Convênios e acordos coletivos" },
-  { id: "comunicados", label: "Comunicados oficiais" },
-  { id: "outros", label: "Outros documentos" }
-];
-
-const recipientTypes = [
-  { id: "all", label: "Todos os associados" },
-  { id: "specialty", label: "Por especialidade" },
-];
 
 // Create a File interface that extends the standard File with an id property
 interface ExtendedFile extends File {
@@ -137,13 +124,17 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
             recipient_type: 'all'
           });
       } else if (recipientType === 'specialty' && selectedSpecialty) {
-        await supabase
-          .from('document_recipients')
-          .insert({
-            document_id: document.id,
-            recipient_type: 'specialty',
-            specialty: selectedSpecialty
-          });
+        // Make sure selectedSpecialty is one of the allowed values
+        const validSpecialty = specialtyOptions.find(opt => opt.id === selectedSpecialty);
+        if (validSpecialty) {
+          await supabase
+            .from('document_recipients')
+            .insert({
+              document_id: document.id,
+              recipient_type: 'specialty',
+              specialty: selectedSpecialty as "pml" | "pol" // Type assertion since we validated above
+            });
+        }
       }
       
       toast({
@@ -230,7 +221,27 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
           
           <div className="space-y-2">
             <Label>Arquivo (opcional)</Label>
-            <FileUploader onFileChange={handleFileChange} />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={`w-full relative ${uploading ? 'opacity-50' : ''}`}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Enviando...' : 'Selecionar arquivo'}
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+                    disabled={uploading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Documentos, PDFs, imagens e outros formatos são aceitos.
+              </p>
+            </div>
             {file && (
               <p className="text-sm text-gray-500">
                 Arquivo selecionado: {file.name} ({Math.round(file.size / 1024)} KB)
@@ -268,8 +279,9 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                           <SelectValue placeholder="Selecione a especialidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pml">Polícia Militar Local</SelectItem>
-                          <SelectItem value="pol">Polícia Ordinária Local</SelectItem>
+                          {specialtyOptions.map(option => (
+                            <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
