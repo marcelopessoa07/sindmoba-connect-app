@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { DocumentForm, FormValues } from './DocumentForm';
 import { SpecialtyType } from './recipients/SpecialtySelector';
 import { Member } from './recipients/RecipientSelector';
+import { uploadDocument } from './utils/documentUploaders';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UploadDialogProps {
   open: boolean;
@@ -56,11 +58,13 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     setUploading(true);
 
     try {
-      // A função uploadDocument deve ser implementada em documentUploaders.ts
-      // Simulando o upload para evitar erros
-      console.log("Enviando documento:", {values, file, selectedSpecialties, selectedMembers});
+      const { data: { user } } = await supabase.auth.getUser();
       
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simula o tempo de upload
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+      
+      await uploadDocument(values, file, user.id, selectedSpecialties, selectedMembers);
       
       toast({
         title: "Documento enviado com sucesso",

@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Eye, Trash2 } from 'lucide-react';
-import { fileCategories } from './DocumentForm';
+import { fileCategories } from './utils/constants';
 
 interface DocumentListItemProps {
   document: any;

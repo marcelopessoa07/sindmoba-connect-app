@@ -1,83 +1,126 @@
-import { supabase } from "@/integrations/supabase/client";
-import { FormValues } from "../DocumentForm";
-import { SpecialtyType } from "../recipients/SpecialtySelector";
-import { Member } from "../recipients/RecipientSelector";
+
+import { supabase } from '@/integrations/supabase/client';
+import { FormValues } from '../DocumentForm';
+import { Member } from '../recipients/RecipientSelector';
+import { SpecialtyType } from '../recipients/SpecialtySelector';
 
 /**
- * Uploads a document with metadata and assigns recipients
+ * Uploads a document file to Supabase Storage
+ * 
+ * @param file The file to upload
+ * @param userId The ID of the user uploading the file
+ * @returns The URL of the uploaded file
+ */
+export const uploadDocumentFile = async (file: File, userId: string): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const filePath = `${userId}/${fileName}`;
+
+  const { data, error } = await supabase
+    .storage
+    .from('documents')
+    .upload(filePath, file);
+
+  if (error) {
+    throw new Error(`Error uploading document: ${error.message}`);
+  }
+
+  // Get the public URL for the file
+  const { data: urlData } = supabase
+    .storage
+    .from('documents')
+    .getPublicUrl(filePath);
+
+  return urlData.publicUrl;
+};
+
+/**
+ * Uploads a document to the database
  */
 export const uploadDocument = async (
   values: FormValues, 
   file: File | null,
+  userId: string,
   selectedSpecialties: SpecialtyType[],
   selectedMembers: Member[]
 ) => {
   if (!file) {
-    throw new Error("Nenhum arquivo selecionado");
+    throw new Error("No file provided");
   }
 
-  // Upload file to storage
-  const fileName = `${Date.now()}_${file.name}`;
-  const { data: fileData, error: fileError } = await supabase
-    .storage
-    .from('documents')
-    .upload(fileName, file);
+  // Upload the file to storage
+  const fileUrl = await uploadDocumentFile(file, userId);
 
-  if (fileError) {
-    throw fileError;
-  }
+  // Create document record in the database
+  const documentData = {
+    title: values.title,
+    description: values.description || null,
+    category: values.documentType,
+    file_url: fileUrl,
+    file_type: file.type,
+    file_size: file.size,
+    created_by: userId
+  };
 
-  // Create document record
-  const { data: docData, error: docError } = await supabase
+  const { data, error } = await supabase
     .from('documents')
-    .insert({
-      title: values.title,
-      description: values.description || null,
-      document_type: values.documentType,
-      file_path: fileName,
-      notify_target: values.notifyTarget,
-      created_by: (await supabase.auth.getUser()).data.user?.id,
-    })
-    .select('id')
+    .insert(documentData)
+    .select()
     .single();
 
-  if (docError) {
-    // Cleanup uploaded file if document creation fails
-    await supabase.storage.from('documents').remove([fileName]);
-    throw docError;
+  if (error) {
+    throw error;
   }
 
-  // Process specialty recipients if any
+  const documentId = data.id;
+
+  // Add specialty recipients if any
   if (selectedSpecialties.length > 0) {
-    const specialtyRecipients = selectedSpecialties.map((specialty) => ({
-      document_id: docData.id,
-      specialty_id: specialty.id,
+    const specialtyRecipients = selectedSpecialties.map(specialty => ({
+      document_id: documentId,
+      recipient_type: 'specialty',
+      specialty: specialty
     }));
 
     const { error: specialtyError } = await supabase
-      .from('document_specialty_recipients')
+      .from('document_recipients')
       .insert(specialtyRecipients);
 
     if (specialtyError) {
-      throw specialtyError;
+      console.error('Error adding specialty recipients:', specialtyError);
     }
   }
 
-  // Process individual member recipients if any
+  // Add member recipients if any
   if (selectedMembers.length > 0) {
-    const memberRecipients = selectedMembers.map((member) => ({
-      document_id: docData.id,
-      user_id: member.id,
+    const memberRecipients = selectedMembers.map(member => ({
+      document_id: documentId,
+      recipient_id: member.id,
+      recipient_type: 'user'
     }));
 
     const { error: memberError } = await supabase
-      .from('document_user_recipients')
+      .from('document_recipients')
       .insert(memberRecipients);
 
     if (memberError) {
-      throw memberError;
+      console.error('Error adding member recipients:', memberError);
     }
   }
 
-  return docData.id;
+  // If notifyTarget is 'all', add an 'all' recipient type
+  if (values.notifyTarget === 'all') {
+    const { error: allError } = await supabase
+      .from('document_recipients')
+      .insert({
+        document_id: documentId,
+        recipient_type: 'all'
+      });
+
+    if (allError) {
+      console.error('Error adding all recipients:', allError);
+    }
+  }
+
+  return data;
 };
