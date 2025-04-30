@@ -1,8 +1,20 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { FileUploader } from '@/components/FileUploader';
 import {
   Select,
   SelectContent,
@@ -10,29 +22,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { FileUploader } from '@/components/FileUploader';
-import { X, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { RecipientSelector, Member } from './recipients/RecipientSelector';
-import { SpecialtyType } from './recipients/SpecialtySelector';
-import { useForm } from 'react-hook-form';
+import { Loader2 } from 'lucide-react';
+import { RecipientSelector } from './recipients/RecipientSelector';
+import { SpecialtySelector, SpecialtyType } from './recipients/SpecialtySelector';
 
-// Export file categories for use in other components
-export const fileCategories = [
-  { value: 'estatuto', label: 'Estatuto do SINDMOBA' },
-  { value: 'atas', label: 'Atas de assembleias' },
-  { value: 'convenios', label: 'Convênios e acordos coletivos' },
-  { value: 'comunicados', label: 'Comunicados oficiais' },
-  { value: 'outros', label: 'Outros documentos' }
-];
+const formSchema = z.object({
+  title: z.string().min(1, {
+    message: "Título é obrigatório.",
+  }),
+  description: z.string().optional(),
+  category: z.string().min(1, {
+    message: "Categoria é obrigatória.",
+  }),
+});
 
-export interface FormValues {
-  title: string;
-  description: string;
-  category: string;
-  recipientType: string;
-}
+export type FormValues = z.infer<typeof formSchema>;
 
 interface DocumentFormProps {
   onSubmit: (values: FormValues, file: File | null) => Promise<void>;
@@ -40,175 +44,132 @@ interface DocumentFormProps {
 }
 
 export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
-  const [selectedSpecialties, setSelectedSpecialties] = useState<SpecialtyType[]>([]);
-  const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  
+
   const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      category: 'comunicados',
-      recipientType: 'all'
-    }
+      title: "",
+      description: "",
+      category: "",
+    },
   });
 
-  const handleFileChange = (uploadedFile: File | null) => {
-    console.log("File selected:", uploadedFile);
-    setFile(uploadedFile);
+  const handleFileUpload = (file: File | null) => {
+    setFile(file);
   };
 
-  const handleSpecialtyChange = (specialty: SpecialtyType) => {
-    setSelectedSpecialties(prev => 
-      prev.includes(specialty)
-        ? prev.filter(item => item !== specialty)
-        : [...prev, specialty]
-    );
+  const submitForm = (values: FormValues) => {
+    onSubmit(values, file);
   };
-
-  const handleMemberSelection = (member: Member) => {
-    setSelectedMembers(prev => {
-      const isMemberSelected = prev.some(m => m.id === member.id);
-      if (isMemberSelected) {
-        return prev.filter(m => m.id !== member.id);
-      } else {
-        return [...prev, member];
-      }
-    });
-  };
-
-  const handleFormSubmit = async (values: FormValues) => {
-    await onSubmit(values, file);
-  };
-
-  const recipientTypeValue = form.watch('recipientType');
 
   return (
-    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-      <FormField
-        control={form.control}
-        name="title"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Título</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="Título do documento"
-                disabled={uploading}
-                required
-                {...field}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Descrição</FormLabel>
-            <FormControl>
-              <Textarea 
-                placeholder="Descrição opcional do documento"
-                disabled={uploading}
-                {...field}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="category"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Categoria</FormLabel>
-            <Select 
-              onValueChange={field.onChange}
-              defaultValue={field.value}
-              disabled={uploading}
-            >
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(submitForm)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Título</FormLabel>
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
+                <Input placeholder="Título do documento" {...field} disabled={uploading} />
               </FormControl>
-              <SelectContent>
-                {fileCategories.map(cat => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
-        name="recipientType"
-        render={({ field }) => (
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descrição</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Descrição do documento"
+                  className="resize-none"
+                  {...field}
+                  disabled={uploading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="category"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Categoria</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={uploading}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {fileCategories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Selecione a categoria mais adequada para o documento.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormItem>
-            <FormLabel>Destinatários</FormLabel>
+            <FormLabel>Arquivo</FormLabel>
             <FormControl>
-              <RecipientSelector
-                recipientType={field.value}
-                onRecipientTypeChange={field.onChange}
-                selectedSpecialties={selectedSpecialties}
-                onSpecialtyChange={handleSpecialtyChange}
-                selectedMembers={selectedMembers}
-                onMemberSelection={handleMemberSelection}
+              <FileUploader
+                bucket="documents"
+                acceptedFileTypes={[
+                  'application/pdf',
+                  'image/jpeg',
+                  'image/png',
+                  'image/gif',
+                  'application/msword',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                  'application/vnd.ms-excel',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'application/vnd.ms-powerpoint',
+                  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                ]}
+                maxFileSize={10} // 10MB
+                onFileUploaded={handleFileUpload}
                 disabled={uploading}
               />
             </FormControl>
+            <FormDescription>
+              Selecione o arquivo a ser enviado.
+            </FormDescription>
+            <FormMessage />
           </FormItem>
-        )}
-      />
+        </div>
 
-      <div className="space-y-2">
-        <Label>Arquivo</Label>
-        <FileUploader 
-          bucket="documents"
-          acceptedFileTypes={[
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          ]}
-          maxFileSize={10}
-          onFileUploaded={handleFileChange}
-          onUploadProgress={(isUploading) => {}}
-        />
-        {file && (
-          <div className="flex items-center justify-between rounded-md border px-3 py-2 bg-gray-50">
-            <span className="truncate text-sm">{file.name}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setFile(null)}
-              disabled={uploading}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="pt-4 flex justify-end space-x-2">
         <Button type="submit" disabled={uploading}>
           {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {uploading ? 'Enviando...' : 'Enviar documento'}
+          Enviar Documento
         </Button>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 };
 
-// Make FormValues available for reuse without redeclaring
+// Make FormValues and fileCategories available for reuse
 export type { FormValues };
+export const fileCategories = [
+  { value: 'legal', label: 'Documentos Legais' },
+  { value: 'communication', label: 'Comunicados' },
+  { value: 'report', label: 'Relatórios' },
+  { value: 'meeting', label: 'Atas de Reunião' },
+  { value: 'financial', label: 'Documentos Financeiros' },
+  { value: 'other', label: 'Outros' }
+];

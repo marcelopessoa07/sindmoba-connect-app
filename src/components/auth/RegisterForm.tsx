@@ -100,7 +100,7 @@ export const RegisterForm: React.FC<Props> = ({ onLogin }) => {
           toast({
             title: "Conta criada, mas falha no envio do documento",
             description: "Sua conta foi criada, mas houve um problema ao enviar seu documento de identidade. Você poderá enviá-lo mais tarde.",
-            variant: "warning",
+            variant: "destructive", // Changed from "warning" to "destructive" as that's a valid variant
           });
         }
       }

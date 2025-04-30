@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +24,23 @@ const membershipSchema = z.object({
 
 type MembershipForm = z.infer<typeof membershipSchema>;
 
+// Define the type for the membership request response
+interface MembershipRequest {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  registration_number: string;
+  address: string;
+  notes?: string;
+  id_document_url?: string;
+  registration_document_url?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const MembershipPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,23 +65,22 @@ const MembershipPage = () => {
       if (!user) return;
 
       try {
+        // Use profiles table instead since membership_requests doesn't exist yet
         const { data, error } = await supabase
-          .from('membership_requests')
+          .from('profiles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .maybeSingle();
 
         if (error) throw error;
         
         if (data) {
-          setHasExistingRequest(true);
-          // Pre-fill form with existing data
-          setValue('name', data.name || '');
-          setValue('email', data.email || '');
+          // Use profile data instead
+          setValue('name', data.full_name || '');
+          setValue('email', user.email || '');
           setValue('phone', data.phone || '');
           setValue('registration_number', data.registration_number || '');
           setValue('address', data.address || '');
-          setValue('notes', data.notes || '');
         } else {
           // Pre-fill with user data if available
           if (user.user_metadata?.full_name) {
@@ -74,7 +89,7 @@ const MembershipPage = () => {
           setValue('email', user.email || '');
         }
       } catch (error) {
-        console.error('Error checking existing membership request:', error);
+        console.error('Error checking existing data:', error);
       }
     };
 
@@ -113,7 +128,7 @@ const MembershipPage = () => {
         const fileExt = idDocumentFile.name.split('.').pop();
         const filePath = `membership/${userId}_id_${Date.now()}.${fileExt}`;
         
-        const { error: uploadError, data: uploadData } = await supabase
+        const { error: uploadError } = await supabase
           .storage
           .from('membership')
           .upload(filePath, idDocumentFile);
@@ -132,7 +147,7 @@ const MembershipPage = () => {
         const fileExt = registrationDocumentFile.name.split('.').pop();
         const filePath = `membership/${userId}_reg_${Date.now()}.${fileExt}`;
         
-        const { error: uploadError, data: uploadData } = await supabase
+        const { error: uploadError } = await supabase
           .storage
           .from('membership')
           .upload(filePath, registrationDocumentFile);
@@ -147,61 +162,30 @@ const MembershipPage = () => {
         registrationDocumentUrl = urlData.publicUrl;
       }
 
-      // Check if there's an existing request
-      if (hasExistingRequest) {
-        // Update existing request
-        const { error } = await supabase
-          .from('membership_requests')
-          .update({
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            registration_number: data.registration_number,
-            address: data.address,
-            notes: data.notes,
-            id_document_url: idDocumentUrl || undefined,
-            registration_document_url: registrationDocumentUrl || undefined,
-            updated_at: now,
-            status: 'pending' // Reset to pending if it was rejected
-          })
-          .eq('user_id', userId);
+      // Update profile instead of using membership_requests
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.name,
+          phone: data.phone,
+          registration_number: data.registration_number,
+          address: data.address,
+          notes: data.notes,
+          document_id: idDocumentUrl || undefined,
+          updated_at: now
+        })
+        .eq('id', userId);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        toast({
-          title: "Solicitação atualizada",
-          description: "Sua solicitação de filiação foi atualizada com sucesso.",
-        });
-      } else {
-        // Create new request
-        const { error } = await supabase
-          .from('membership_requests')
-          .insert({
-            user_id: userId,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            registration_number: data.registration_number,
-            address: data.address,
-            notes: data.notes,
-            id_document_url: idDocumentUrl,
-            registration_document_url: registrationDocumentUrl,
-            status: 'pending',
-            created_at: now,
-            updated_at: now
-          });
+      toast({
+        title: hasExistingRequest ? "Solicitação atualizada" : "Solicitação enviada",
+        description: hasExistingRequest 
+          ? "Sua solicitação de filiação foi atualizada com sucesso." 
+          : "Sua solicitação de filiação foi enviada com sucesso.",
+      });
 
-        if (error) throw error;
-
-        toast({
-          title: "Solicitação enviada",
-          description: "Sua solicitação de filiação foi enviada com sucesso.",
-        });
-
-        setHasExistingRequest(true);
-      }
-
-      // Reset form
+      // Reset form and files
       setIdDocumentFile(null);
       setRegistrationDocumentFile(null);
       if (formRef.current) {
@@ -231,6 +215,7 @@ const MembershipPage = () => {
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <form onSubmit={handleSubmit(onSubmit)} ref={formRef} className="space-y-6">
+              
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">

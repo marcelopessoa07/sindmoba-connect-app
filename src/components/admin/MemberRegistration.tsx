@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const MemberRegistration = () => {
+interface MemberRegistrationProps {
+  onRegistrationSuccess?: () => void;
+}
+
+const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -95,21 +98,23 @@ const MemberRegistration = () => {
       console.log("User created with ID:", userId);
 
       // Update the public profile in the profiles table
+      const profileData = {
+        role: 'member',
+        approved_at: new Date().toISOString(),
+        full_name: `${data.first_name} ${data.last_name}`,
+        phone: data.phone,
+        registration_number: data.registration_number,
+        specialty: data.specialty,
+        address: data.address,
+        bio: data.bio,
+        birth_date: data.birth_date,
+        notes: data.notes,
+        is_active: true
+      };
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          role: 'member',
-          approved_at: new Date().toISOString(),
-          full_name: `${data.first_name} ${data.last_name}`,
-          phone: data.phone,
-          registration_number: data.registration_number,
-          specialty: data.specialty,
-          address: data.address,
-          bio: data.bio,
-          birth_date: data.birth_date,
-          notes: data.notes,
-          is_active: true
-        })
+        .update(profileData)
         .eq('id', userId);
 
       if (profileError) {
@@ -131,18 +136,6 @@ const MemberRegistration = () => {
         if (uploadError) {
           console.error("Avatar upload error:", uploadError);
           // Continue with document upload
-        } else {
-          // Get avatar URL
-          const { data: publicUrlData } = supabase
-            .storage
-            .from('avatars')
-            .getPublicUrl(filePath);
-
-          // Update avatar_url in profile
-          await supabase
-            .from('profiles')
-            .update({ avatar_url: publicUrlData.publicUrl })
-            .eq('id', userId);
         }
       }
 
@@ -187,6 +180,11 @@ const MemberRegistration = () => {
       setDocumentFile(null);
       if (formRef.current) {
         formRef.current.reset();
+      }
+      
+      // Call onRegistrationSuccess if provided
+      if (onRegistrationSuccess) {
+        onRegistrationSuccess();
       }
       
     } catch (error: any) {
