@@ -1,352 +1,83 @@
+import { supabase } from "@/integrations/supabase/client";
+import { FormValues } from "../DocumentForm";
+import { SpecialtyType } from "../recipients/SpecialtySelector";
+import { Member } from "../recipients/RecipientSelector";
 
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { FormValues } from '../DocumentForm';
-import { Member } from '../recipients/RecipientSelector';
-import { SpecialtyType } from '../recipients/SpecialtySelector';
-
+/**
+ * Uploads a document with metadata and assigns recipients
+ */
 export const uploadDocument = async (
   values: FormValues, 
   file: File | null,
-  selectedSpecialties: SpecialtyType[] = [],
-  selectedMembers: Member[] = []
+  selectedSpecialties: SpecialtyType[],
+  selectedMembers: Member[]
 ) => {
   if (!file) {
-    throw new Error('Por favor, selecione um arquivo para enviar.');
+    throw new Error("Nenhum arquivo selecionado");
   }
 
-  // Get the current user
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Usuário não está autenticado.');
+  // Upload file to storage
+  const fileName = `${Date.now()}_${file.name}`;
+  const { data: fileData, error: fileError } = await supabase
+    .storage
+    .from('documents')
+    .upload(fileName, file);
+
+  if (fileError) {
+    throw fileError;
   }
 
-  try {
-    // 1. Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1000)}.${fileExt}`;
-    const filePath = `documents/${fileName}`;
+  // Create document record
+  const { data: docData, error: docError } = await supabase
+    .from('documents')
+    .insert({
+      title: values.title,
+      description: values.description || null,
+      document_type: values.documentType,
+      file_path: fileName,
+      notify_target: values.notifyTarget,
+      created_by: (await supabase.auth.getUser()).data.user?.id,
+    })
+    .select('id')
+    .single();
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    // 2. Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
-
-    // 3. Insert document record
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert({
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        file_url: publicUrlData.publicUrl,
-        file_type: file.type,
-        file_size: file.size,
-        created_by: user.id
-      })
-      .select()
-      .single();
-
-    if (documentError) {
-      throw documentError;
-    }
-
-    // Determine recipients based on what was selected
-    if (selectedSpecialties.length > 0) {
-      // Create recipient records for each specialty
-      for (const specialty of selectedSpecialties) {
-        const { error: recipientError } = await supabase
-          .from('document_recipients')
-          .insert({
-            document_id: document.id,
-            recipient_type: 'specialty',
-            specialty: specialty
-          });
-
-        if (recipientError) {
-          throw recipientError;
-        }
-      }
-    } else if (selectedMembers.length > 0) {
-      // Create recipient records for each member
-      for (const member of selectedMembers) {
-        const { error: recipientError } = await supabase
-          .from('document_recipients')
-          .insert({
-            document_id: document.id,
-            recipient_type: 'member',
-            recipient_id: member.id
-          });
-
-        if (recipientError) {
-          throw recipientError;
-        }
-      }
-    } else {
-      // Default to "all" if no specific recipients were selected
-      const { error: recipientError } = await supabase
-        .from('document_recipients')
-        .insert({
-          document_id: document.id,
-          recipient_type: 'all'
-        });
-
-      if (recipientError) {
-        throw recipientError;
-      }
-    }
-
-    return document;
-  } catch (error) {
-    console.error('Error uploading document:', error);
-    throw error;
-  }
-};
-
-export const uploadDocumentToAll = async (
-  values: FormValues,
-  file: File | null,
-  userId: string,
-  toast: ReturnType<typeof useToast>['toast']
-) => {
-  if (!file) {
-    toast({
-      title: 'Erro no envio',
-      description: 'Por favor, selecione um arquivo para enviar.',
-      variant: 'destructive',
-    });
-    return null;
+  if (docError) {
+    // Cleanup uploaded file if document creation fails
+    await supabase.storage.from('documents').remove([fileName]);
+    throw docError;
   }
 
-  try {
-    // 1. Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1000)}.${fileExt}`;
-    const filePath = `documents/${fileName}`;
+  // Process specialty recipients if any
+  if (selectedSpecialties.length > 0) {
+    const specialtyRecipients = selectedSpecialties.map((specialty) => ({
+      document_id: docData.id,
+      specialty_id: specialty.id,
+    }));
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
+    const { error: specialtyError } = await supabase
+      .from('document_specialty_recipients')
+      .insert(specialtyRecipients);
 
-    if (uploadError) {
-      throw uploadError;
+    if (specialtyError) {
+      throw specialtyError;
     }
-
-    // 2. Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
-
-    // 3. Insert document record
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert({
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        file_url: publicUrlData.publicUrl,
-        file_type: file.type,
-        file_size: file.size,
-        created_by: userId
-      })
-      .select()
-      .single();
-
-    if (documentError) {
-      throw documentError;
-    }
-
-    // 4. Create recipient record for "all"
-    const { error: recipientError } = await supabase
-      .from('document_recipients')
-      .insert({
-        document_id: document.id,
-        recipient_type: 'all',
-      });
-
-    if (recipientError) {
-      throw recipientError;
-    }
-
-    return document;
-  } catch (error: any) {
-    console.error('Error uploading document:', error);
-    toast({
-      title: 'Erro no envio',
-      description: error.message || 'Houve um erro ao enviar o documento.',
-      variant: 'destructive',
-    });
-    return null;
-  }
-};
-
-export const uploadDocumentToSpecialties = async (
-  values: FormValues,
-  file: File | null,
-  selectedSpecialties: ('pml' | 'pol')[],
-  userId: string,
-  toast: ReturnType<typeof useToast>['toast']
-) => {
-  if (!file) {
-    toast({
-      title: 'Erro no envio',
-      description: 'Por favor, selecione um arquivo para enviar.',
-      variant: 'destructive',
-    });
-    return null;
   }
 
-  try {
-    // 1. Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1000)}.${fileExt}`;
-    const filePath = `documents/${fileName}`;
+  // Process individual member recipients if any
+  if (selectedMembers.length > 0) {
+    const memberRecipients = selectedMembers.map((member) => ({
+      document_id: docData.id,
+      user_id: member.id,
+    }));
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
+    const { error: memberError } = await supabase
+      .from('document_user_recipients')
+      .insert(memberRecipients);
 
-    if (uploadError) {
-      throw uploadError;
+    if (memberError) {
+      throw memberError;
     }
-
-    // 2. Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
-
-    // 3. Insert document record
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert({
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        file_url: publicUrlData.publicUrl,
-        file_type: file.type,
-        file_size: file.size,
-        created_by: userId
-      })
-      .select()
-      .single();
-
-    if (documentError) {
-      throw documentError;
-    }
-
-    // 4. Create recipient records for each specialty
-    for (const specialty of selectedSpecialties) {
-      const { error: recipientError } = await supabase
-        .from('document_recipients')
-        .insert({
-          document_id: document.id,
-          recipient_type: 'specialty',
-          specialty: specialty
-        });
-
-      if (recipientError) {
-        throw recipientError;
-      }
-    }
-
-    return document;
-  } catch (error: any) {
-    console.error('Error uploading document:', error);
-    toast({
-      title: 'Erro no envio',
-      description: error.message || 'Houve um erro ao enviar o documento.',
-      variant: 'destructive',
-    });
-    return null;
-  }
-};
-
-export const uploadDocumentToMembers = async (
-  values: FormValues,
-  file: File | null,
-  selectedMembers: string[],
-  userId: string,
-  toast: ReturnType<typeof useToast>['toast']
-) => {
-  if (!file) {
-    toast({
-      title: 'Erro no envio',
-      description: 'Por favor, selecione um arquivo para enviar.',
-      variant: 'destructive',
-    });
-    return null;
   }
 
-  try {
-    // 1. Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1000)}.${fileExt}`;
-    const filePath = `documents/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    // 2. Get public URL
-    const { data: publicUrlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
-
-    // 3. Insert document record
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
-      .insert({
-        title: values.title,
-        description: values.description,
-        category: values.category,
-        file_url: publicUrlData.publicUrl,
-        file_type: file.type,
-        file_size: file.size,
-        created_by: userId
-      })
-      .select()
-      .single();
-
-    if (documentError) {
-      throw documentError;
-    }
-
-    // 4. Create recipient records for each member
-    for (const memberId of selectedMembers) {
-      const { error: recipientError } = await supabase
-        .from('document_recipients')
-        .insert({
-          document_id: document.id,
-          recipient_type: 'member',
-          recipient_id: memberId
-        });
-
-      if (recipientError) {
-        throw recipientError;
-      }
-    }
-
-    return document;
-  } catch (error: any) {
-    console.error('Error uploading document:', error);
-    toast({
-      title: 'Erro no envio',
-      description: error.message || 'Houve um erro ao enviar o documento.',
-      variant: 'destructive',
-    });
-    return null;
-  }
+  return docData.id;
 };
