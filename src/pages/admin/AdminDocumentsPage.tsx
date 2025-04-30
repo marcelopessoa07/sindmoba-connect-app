@@ -117,6 +117,7 @@ const AdminDocumentsPage = () => {
         setDocumentUrl('');
       }
       
+      // Only after all state updates are done, open the dialog
       setIsPreviewDialogOpen(true);
     } catch (error) {
       console.error('Error generating document URL:', error);
@@ -255,26 +256,33 @@ const AdminDocumentsPage = () => {
         )}
       </div>
       
-      <DocumentPreviewDialog
-        open={isPreviewDialogOpen}
-        onOpenChange={setIsPreviewDialogOpen}
-        document={selectedDocument}
-        documentUrl={documentUrl}
-        onDelete={handlePreviewDeleteClick}
-      />
+      {/* These components are conditionally rendered based on state, not using controlled open state */}
+      {isPreviewDialogOpen && (
+        <DocumentPreviewDialog
+          open={isPreviewDialogOpen}
+          onOpenChange={setIsPreviewDialogOpen}
+          document={selectedDocument}
+          documentUrl={documentUrl}
+          onDelete={handlePreviewDeleteClick}
+        />
+      )}
 
-      <DeleteConfirmationDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        documentTitle={documentToDelete?.title}
-        onConfirm={handleDeleteDocument}
-      />
+      {isDeleteDialogOpen && (
+        <DeleteConfirmationDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          documentTitle={documentToDelete?.title}
+          onConfirm={handleDeleteDocument}
+        />
+      )}
       
-      <UploadDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onUploadSuccess={fetchDocuments}
-      />
+      {isDialogOpen && (
+        <UploadDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onUploadSuccess={fetchDocuments}
+        />
+      )}
     </AdminLayout>
   );
 };
