@@ -1,81 +1,129 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { 
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter
+} from '@/components/ui/card';
 import { FileUploader } from '@/components/FileUploader';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const RegisterForm = () => {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [specialization, setSpecialization] = useState('');
-  const [professionalId, setProfessionalId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [currentJob, setCurrentJob] = useState('');
-  const [fileId, setFileId] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileSize, setFileSize] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
+// Create registration schema
+const registerSchema = z.object({
+  email: z.string().email({ message: 'E-mail inválido' }),
+  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
+  confirmPassword: z.string(),
+  firstName: z.string().min(1, { message: 'O nome é obrigatório' }),
+  lastName: z.string().min(1, { message: 'O sobrenome é obrigatório' }),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'As senhas não conferem',
+  path: ['confirmPassword'],
+});
+
+type RegisterForm = z.infer<typeof registerSchema>;
+
+interface Props {
+  onLogin?: () => void;
+}
+
+export const RegisterForm: React.FC<Props> = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [userCreated, setUserCreated] = useState(false);
+  
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  useEffect(() => {
+    if (userCreated) {
+      // Reset form after successful registration
+      reset();
+      setDocumentFile(null);
+    }
+  }, [userCreated, reset]);
+
+  const handleFileUpload = (file: File | null) => {
+    setDocumentFile(file);
+  };
+
+  const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
-
+    setUserCreated(false);
+    
     try {
-      console.log("Starting registration request process");
-      
-      // Submit to pending_registrations instead of creating a user
-      const { data, error } = await supabase
-        .from('pending_registrations')
-        .insert({
-          email,
-          full_name: fullName,
-          cpf,
-          specialty: specialization,
-          registration_number: professionalId,
-          phone,
-          address,
-          current_job: currentJob,
-          document_id: fileId
-        });
-
-      console.log("Registration request response:", { data, error });
-
-      if (error) throw error;
-
-      toast({
-        title: "Solicitação enviada com sucesso!",
-        description: "Sua solicitação foi recebida. Nossa equipe entrará em contato em breve.",
+      // First create the user account with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            full_name: `${data.firstName} ${data.lastName}`,
+          }
+        }
       });
       
-      // Wait a short time before navigating to ensure the toast is seen
+      if (authError) throw authError;
+
+      // Now upload the document if available
+      if (documentFile && authData.user) {
+        const fileExt = documentFile.name.split('.').pop();
+        const fileName = `${authData.user.id}_id.${fileExt}`;
+        const filePath = `registration/${fileName}`;
+        
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase
+          .storage
+          .from('registration')
+          .upload(filePath, documentFile);
+        
+        if (uploadError) {
+          console.error('Document upload failed:', uploadError);
+          // We don't throw here because the account was created successfully
+          // Just show a warning about the document
+          toast({
+            title: "Conta criada, mas falha no envio do documento",
+            description: "Sua conta foi criada, mas houve um problema ao enviar seu documento de identidade. Você poderá enviá-lo mais tarde.",
+            variant: "warning",
+          });
+        }
+      }
+
+      // Show success message
+      toast({
+        title: "Cadastro realizado com sucesso!",
+        description: "Sua solicitação de cadastro foi recebida e está em análise. Você receberá um email quando for aprovado.",
+      });
+      
+      setUserCreated(true);
+
+      // Navigate to login page after a delay
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
-      
+        if (onLogin) onLogin();
+      }, 1500);
+
     } catch (error: any) {
-      console.error("Registration error:", error);
-      
-      let errorMessage = error.message;
-      
-      // Handle specific error cases
-      if (error.message.includes("duplicate key value violates unique constraint")) {
-        errorMessage = "Este e-mail já está em uso. Por favor use outro e-mail ou entre em contato com o suporte.";
-      }
-      
+      console.error('Registration error:', error);
       toast({
-        title: "Erro ao enviar solicitação",
-        description: errorMessage,
+        title: "Erro no cadastro",
+        description: error.message || "Houve um erro ao criar sua conta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -83,227 +131,111 @@ const RegisterForm = () => {
     }
   };
 
-  const formatCPF = (value: string) => {
-    // Only allow digits
-    const digits = value.replace(/\D/g, '');
-    
-    // Apply CPF format: 000.000.000-00
-    let formattedValue = digits;
-    if (digits.length > 3) {
-      formattedValue = digits.replace(/^(\d{3})/, '$1.');
-    }
-    if (digits.length > 6) {
-      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})/, '$1.$2.');
-    }
-    if (digits.length > 9) {
-      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})\.(\d{3})/, '$1.$2.$3-');
-    }
-
-    return formattedValue;
-  };
-
-  const formatPhoneNumber = (value: string) => {
-    // Remove anything that's not a digit
-    const digits = value.replace(/\D/g, '');
-    
-    // Apply phone format: (00) 00000-0000
-    let formattedValue = digits;
-    if (digits.length > 2) {
-      formattedValue = digits.replace(/^(\d{2})/, '($1) ');
-    }
-    if (digits.length > 7) {
-      formattedValue = formattedValue.replace(/^(\(\d{2}\) )(\d{5})/, '$1$2-');
-    }
-
-    return formattedValue;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhoneNumber(e.target.value));
-  };
-
-  const handleFileUploaded = (fileData: { id: string, name: string, size: number }) => {
-    setFileId(fileData.id);
-    setFileName(fileData.name);
-    setFileSize(fileData.size);
-  };
-
-  const handleUploadProgress = (isCurrentlyUploading: boolean) => {
-    setIsUploading(isCurrentlyUploading);
-  };
-
   return (
-    <div className="mx-auto w-full max-w-md p-6">
-      <div className="mb-6 flex justify-center">
-        <div className="h-24 w-24">
-          <img 
-            src="/lovable-uploads/f871b032-f7fc-43cb-83e4-3f6d2381d1e6.png" 
-            alt="SINDMOBA Logo" 
-            className="w-full h-full object-contain"
-          />
-        </div>
-      </div>
-      
-      <h1 className="mb-2 text-center text-2xl font-bold text-sindmoba-dark">
-        Filiação ao Sindicato
-      </h1>
-      <p className="mb-6 text-center text-gray-600">
-        Preencha o formulário abaixo para iniciar sua filiação
-      </p>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Solicitar Cadastro</CardTitle>
+        <CardDescription>
+          Preencha seus dados para solicitar acesso. Será necessária aprovação do administrador.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Nome</Label>
+              <Input 
+                id="firstName"
+                {...register('firstName')}
+                disabled={isLoading}
+              />
+              {errors.firstName && (
+                <p className="text-sm text-red-500">{errors.firstName.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Sobrenome</Label>
+              <Input 
+                id="lastName"
+                {...register('lastName')}
+                disabled={isLoading}
+              />
+              {errors.lastName && (
+                <p className="text-sm text-red-500">{errors.lastName.message}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">E-mail</Label>
+            <Input 
+              id="email" 
+              type="email"
+              {...register('email')}
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-            Nome Completo
-          </label>
-          <Input
-            id="fullName"
-            type="text"
-            placeholder="Seu nome completo"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input 
+              id="password" 
+              type="password"
+              {...register('password')}
+              disabled={isLoading}
+            />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+            <Input 
+              id="confirmPassword" 
+              type="password"
+              {...register('confirmPassword')}
+              disabled={isLoading}
+            />
+            {errors.confirmPassword && (
+              <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            E-mail
-          </label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="document">Documento de Identificação</Label>
+            <FileUploader 
+              bucket="registration"
+              acceptedFileTypes={[
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/gif'
+              ]}
+              maxFileSize={5} // 5MB
+              onFileUploaded={handleFileUpload}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <label htmlFor="cpf" className="block text-sm font-medium text-gray-700">
-            CPF
-          </label>
-          <Input
-            id="cpf"
-            type="text"
-            placeholder="000.000.000-00"
-            value={cpf}
-            onChange={(e) => setCpf(formatCPF(e.target.value))}
-            maxLength={14}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-            Telefone
-          </label>
-          <Input
-            id="phone"
-            type="text"
-            placeholder="(00) 00000-0000"
-            value={phone}
-            onChange={handlePhoneChange}
-            maxLength={15}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-            Endereço Completo
-          </label>
-          <Textarea
-            id="address"
-            placeholder="Rua, número, bairro, cidade, estado e CEP"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="specialization" className="block text-sm font-medium text-gray-700">
-            Especialidade
-          </label>
-          <Select value={specialization} onValueChange={setSpecialization} required>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione sua especialidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pml">Perito Médico Legal (PML)</SelectItem>
-              <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <label htmlFor="professionalId" className="block text-sm font-medium text-gray-700">
-            Número de Registro Profissional (CRM/CRO)
-          </label>
-          <Input
-            id="professionalId"
-            type="text"
-            placeholder="Seu número de registro"
-            value={professionalId}
-            onChange={(e) => setProfessionalId(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="currentJob" className="block text-sm font-medium text-gray-700">
-            Cargo Atual
-          </label>
-          <Input
-            id="currentJob"
-            type="text"
-            placeholder="Seu cargo atual"
-            value={currentJob}
-            onChange={(e) => setCurrentJob(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Documentação (PDF)
-          </label>
-          <FileUploader 
-            bucket="registration-documents"
-            acceptedFileTypes={["application/pdf"]}
-            maxFileSize={5}
-            onFileUploaded={handleFileUploaded}
-            onUploadProgress={handleUploadProgress}
-          />
-          {fileName && (
-            <p className="text-sm text-green-600">
-              Arquivo enviado: {fileName}
-            </p>
-          )}
-        </div>
-
-        <div className="pt-2">
           <Button 
             type="submit" 
-            className="w-full bg-sindmoba-primary hover:bg-sindmoba-secondary"
-            disabled={isLoading || isUploading || !fileId}
+            className="w-full" 
+            disabled={isLoading}
           >
-            {isLoading ? 'Enviando...' : 'Solicitar Filiação'}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? 'Enviando...' : 'Criar Conta'}
           </Button>
-        </div>
-      </form>
-
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-600">
-          Já é sindicalizado?{' '}
-          <Link to="/login" className="font-medium text-sindmoba-primary hover:underline">
-            Faça login
-          </Link>
-        </p>
-      </div>
-    </div>
+        </form>
+      </CardContent>
+      <CardFooter className="justify-center border-t pt-4">
+        <Button variant="link" onClick={onLogin} disabled={isLoading}>
+          Já tem uma conta? Faça login
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

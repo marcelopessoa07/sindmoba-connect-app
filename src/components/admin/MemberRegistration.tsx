@@ -1,159 +1,199 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef } from 'react';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import FileUploader from '@/components/FileUploader';
 import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon, Download } from 'lucide-react';
-import { FileUploader } from '@/components/FileUploader';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2 } from 'lucide-react';
 
-interface MemberRegistrationProps {
-  onRegistrationSuccess?: () => void;
-}
+const formSchema = z.object({
+  first_name: z.string().min(1, 'Nome é obrigatório'),
+  last_name: z.string().min(1, 'Sobrenome é obrigatório'),
+  email: z.string().email('Email inválido'),
+  phone: z.string().optional(),
+  birth_date: z.string().optional(),
+  registration_number: z.string().min(1, 'Número de registro é obrigatório'),
+  specialty: z.enum(['pml', 'pol']),
+  address: z.string().optional(),
+  bio: z.string().optional(),
+  notes: z.string().optional()
+});
 
-const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) => {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    cpf: '',
-    specialization: '',
-    professionalId: '',
-    phone: '',
-    address: '',
-    currentJob: '',
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [uploadedDocument, setUploadedDocument] = useState<{id: string, name: string, size: number} | null>(null);
+type FormValues = z.infer<typeof formSchema>;
+
+const MemberRegistration = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing again
-    if (error) setError(null);
-  };
-
-  const handleSpecializationChange = (value: string) => {
-    setFormData(prev => ({ ...prev, specialization: value }));
-    if (error) setError(null);
-  };
-
-  const formatCPF = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    let formattedValue = digits;
-    if (digits.length > 3) formattedValue = digits.replace(/^(\d{3})/, '$1.');
-    if (digits.length > 6) formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})/, '$1.$2.');
-    if (digits.length > 9) formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})\.(\d{3})/, '$1.$2.$3-');
-    return formattedValue;
-  };
-
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedCPF = formatCPF(e.target.value);
-    setFormData(prev => ({ ...prev, cpf: formattedCPF }));
-    if (error) setError(null);
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow digits
-    const digits = e.target.value.replace(/\D/g, '');
-    
-    // Apply phone format: (00) 00000-0000
-    let formattedValue = digits;
-    if (digits.length > 2) {
-      formattedValue = digits.replace(/^(\d{2})/, '($1) ');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      specialty: 'pml'
     }
-    if (digits.length > 7) {
-      formattedValue = formattedValue.replace(/^(\(\d{2}\) )(\d{5})/, '$1$2-');
-    }
+  });
 
-    setFormData(prev => ({ ...prev, phone: formattedValue }));
-    if (error) setError(null);
+  const handleAvatarChange = (file: File | null) => {
+    setAvatarFile(file);
   };
 
-  const handleFileUploaded = (fileData: { id: string; name: string; size: number }) => {
-    setUploadedDocument(fileData);
-    if (error) setError(null);
+  const handleDocumentChange = (file: File | null) => {
+    setDocumentFile(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
-    setError(null);
-
-    // Validate form
-    if (!formData.fullName || !formData.email || !formData.cpf || !formData.specialization || !formData.professionalId) {
-      setError('Por favor, preencha todos os campos obrigatórios.');
-      setIsLoading(false);
-      return;
-    }
-
+    
     try {
-      // Use the create-member edge function
-      const { data, error: fnError } = await supabase.functions.invoke('create-member', {
-        body: {
-          email: formData.email,
-          full_name: formData.fullName,
-          cpf: formData.cpf,
-          specialty: formData.specialization,
-          registration_number: formData.professionalId,
-          phone: formData.phone,
-          address: formData.address,
-          current_job: formData.currentJob,
-          document_id: uploadedDocument?.id,
-        },
+      // Generate a random password for the user
+      const password = Math.random().toString(36).slice(-12);
+      
+      console.log("Creating user with email:", data.email);
+
+      // Create the user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: data.email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          full_name: `${data.first_name} ${data.last_name}`,
+          phone: data.phone,
+          registration_number: data.registration_number,
+          specialty: data.specialty,
+          address: data.address,
+          birth_date: data.birth_date
+        }
       });
 
-      if (fnError) {
-        console.error('Edge function error:', fnError);
-        throw new Error(fnError.message || 'Erro na função de cadastro');
-      }
-      
-      if (data?.error) {
-        console.error('Response error:', data.error);
-        throw new Error(data.error);
+      if (authError) {
+        throw new Error(`Erro ao criar usuário: ${authError.message}`);
       }
 
-      if (data?.warning) {
-        // User created but email not sent
-        toast({
-          title: "Membro cadastrado com aviso",
-          description: data.warning,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Membro cadastrado com sucesso!",
-          description: "Um email foi enviado para o novo membro configurar sua senha.",
-        });
+      const userId = authData.user.id;
+      console.log("User created with ID:", userId);
+
+      // Update the public profile in the profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'member',
+          approved_at: new Date().toISOString(),
+          full_name: `${data.first_name} ${data.last_name}`,
+          phone: data.phone,
+          registration_number: data.registration_number,
+          specialty: data.specialty,
+          address: data.address,
+          bio: data.bio,
+          birth_date: data.birth_date,
+          notes: data.notes,
+          is_active: true
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
       }
+
+      // Upload avatar if provided
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const filePath = `avatars/${userId}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase
+          .storage
+          .from('avatars')
+          .upload(filePath, avatarFile, {
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error("Avatar upload error:", uploadError);
+          // Continue with document upload
+        } else {
+          // Get avatar URL
+          const { data: publicUrlData } = supabase
+            .storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+          // Update avatar_url in profile
+          await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrlData.publicUrl })
+            .eq('id', userId);
+        }
+      }
+
+      // Upload document if provided
+      if (documentFile) {
+        const fileExt = documentFile.name.split('.').pop();
+        const filePath = `documents/${userId}_id.${fileExt}`;
+        
+        const { error: uploadError } = await supabase
+          .storage
+          .from('documents')
+          .upload(filePath, documentFile, {
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error("Document upload error:", uploadError);
+        }
+      }
+
+      // Send welcome email with password
+      const { error: functionError } = await supabase.functions.invoke('send-invite', {
+        body: {
+          email: data.email,
+          password,
+          name: data.first_name
+        }
+      });
+
+      if (functionError) {
+        console.error("Error sending welcome email:", functionError);
+      }
+
+      toast({
+        title: "Membro registrado com sucesso",
+        description: "Um e-mail de boas-vindas foi enviado com as informações de login.",
+      });
 
       // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-        cpf: '',
-        specialization: '',
-        professionalId: '',
-        phone: '',
-        address: '',
-        currentJob: '',
-      });
-      setUploadedDocument(null);
-      
-      // Call the success callback if provided
-      if (onRegistrationSuccess) {
-        onRegistrationSuccess();
+      reset();
+      setAvatarFile(null);
+      setDocumentFile(null);
+      if (formRef.current) {
+        formRef.current.reset();
       }
+      
     } catch (error: any) {
-      console.error('Registration error:', error);
-      setError(error.message);
+      console.error("Registration error:", error);
       toast({
-        title: "Erro no cadastro",
-        description: error.message,
+        title: "Erro ao registrar membro",
+        description: error.message || "Ocorreu um erro ao registrar o novo membro.",
         variant: "destructive",
       });
     } finally {
@@ -162,167 +202,162 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">Cadastrar Novo Membro</h2>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <InfoIcon className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="fullName" className="text-sm font-medium text-gray-700">
-            Nome Completo *
-          </label>
-          <Input
-            id="fullName"
-            name="fullName"
-            value={formData.fullName}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-gray-700">
-            E-mail *
-          </label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="cpf" className="text-sm font-medium text-gray-700">
-            CPF *
-          </label>
-          <Input
-            id="cpf"
-            name="cpf"
-            value={formData.cpf}
-            onChange={handleCPFChange}
-            maxLength={14}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="phone" className="text-sm font-medium text-gray-700">
-            Telefone
-          </label>
-          <Input
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handlePhoneChange}
-            maxLength={15}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="address" className="text-sm font-medium text-gray-700">
-            Endereço
-          </label>
-          <Textarea
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Endereço completo"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="specialization" className="text-sm font-medium text-gray-700">
-            Especialidade *
-          </label>
-          <Select value={formData.specialization} onValueChange={handleSpecializationChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione a especialidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pml">Perito Médico Legal (PML)</SelectItem>
-              <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="professionalId" className="text-sm font-medium text-gray-700">
-            Número de Registro Profissional (CRM/CRO) *
-          </label>
-          <Input
-            id="professionalId"
-            name="professionalId"
-            value={formData.professionalId}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="currentJob" className="text-sm font-medium text-gray-700">
-            Cargo Atual
-          </label>
-          <Input
-            id="currentJob"
-            name="currentJob"
-            value={formData.currentJob}
-            onChange={handleChange}
-            placeholder="Cargo atual"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Documento (PDF)
-          </label>
+    <form onSubmit={handleSubmit(onSubmit)} ref={formRef} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Informações Pessoais</h3>
           
-          {!uploadedDocument ? (
-            <FileUploader 
-              bucket="registration-documents"
-              acceptedFileTypes={['application/pdf']}
-              maxFileSize={5}
-              onFileUploaded={handleFileUploaded}
-            />
-          ) : (
-            <div className="flex items-center justify-between p-2 border rounded-md">
-              <div className="flex items-center space-x-2">
-                <Download className="h-4 w-4 text-gray-500" />
-                <span className="text-sm truncate max-w-xs">{uploadedDocument.name}</span>
-                <span className="text-xs text-gray-500">
-                  ({(uploadedDocument.size / 1024).toFixed(1)} KB)
-                </span>
-              </div>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setUploadedDocument(null)}
-              >
-                Remover
-              </Button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">Nome</Label>
+              <Input 
+                id="first_name" 
+                {...register('first_name')} 
+                disabled={isLoading}
+              />
+              {errors.first_name && (
+                <p className="text-sm text-destructive">{errors.first_name.message}</p>
+              )}
             </div>
-          )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Sobrenome</Label>
+              <Input 
+                id="last_name" 
+                {...register('last_name')} 
+                disabled={isLoading}
+              />
+              {errors.last_name && (
+                <p className="text-sm text-destructive">{errors.last_name.message}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              type="email"
+              {...register('email')} 
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone</Label>
+            <Input 
+              id="phone" 
+              {...register('phone')} 
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="birth_date">Data de Nascimento</Label>
+            <Input 
+              id="birth_date" 
+              type="date"
+              {...register('birth_date')} 
+              disabled={isLoading}
+            />
+          </div>
         </div>
-
-        <Button 
-          type="submit" 
-          className="w-full"
+        
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Informações Profissionais</h3>
+          
+          <div className="space-y-2">
+            <Label htmlFor="registration_number">Número de Registro</Label>
+            <Input 
+              id="registration_number" 
+              {...register('registration_number')} 
+              disabled={isLoading}
+            />
+            {errors.registration_number && (
+              <p className="text-sm text-destructive">{errors.registration_number.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="specialty">Especialidade</Label>
+            <Select 
+              disabled={isLoading}
+              onValueChange={(value) => {}}
+              defaultValue="pml"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma especialidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pml">Perícia Médica Legal</SelectItem>
+                <SelectItem value="pol">Polícia Ostensiva Local</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="address">Endereço</Label>
+            <Textarea 
+              id="address" 
+              {...register('address')} 
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="bio">Biografia/Resumo Profissional</Label>
+            <Textarea 
+              id="bio" 
+              {...register('bio')} 
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Documentação</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Foto de Perfil</Label>
+            <FileUploader 
+              bucket="avatars"
+              acceptedFileTypes={['image/jpeg', 'image/png']}
+              maxFileSize={2} // 2MB
+              onFileUploaded={handleAvatarChange}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Documento de Identidade</Label>
+            <FileUploader 
+              bucket="documents"
+              acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png']}
+              maxFileSize={5} // 5MB
+              onFileUploaded={handleDocumentChange}
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="notes">Observações Adicionais</Label>
+        <Textarea 
+          id="notes" 
+          {...register('notes')}
           disabled={isLoading}
-        >
-          {isLoading ? 'Cadastrando...' : 'Cadastrar Membro'}
-        </Button>
-      </form>
-    </div>
+        />
+      </div>
+      
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading ? "Registrando..." : "Registrar Membro"}
+      </Button>
+    </form>
   );
 };
 
