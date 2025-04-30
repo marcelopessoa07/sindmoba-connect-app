@@ -157,7 +157,7 @@ const AdminPage = () => {
     if (field === 'specialty') {
       setFormData({
         ...formData,
-        specialty: value as SpecialtyType,
+        specialty: value === '' ? '' : value as SpecialtyType,
       });
     } else {
       setFormData({
@@ -533,7 +533,7 @@ const AdminPage = () => {
                               <SelectValue placeholder="Selecione a especialidade" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Não especificado</SelectItem>
+                              <SelectItem value="">Não especificado</SelectItem>
                               {specialties.map((specialty) => (
                                 <SelectItem key={specialty} value={specialty}>
                                   {getSpecialtyLabel(specialty)}
