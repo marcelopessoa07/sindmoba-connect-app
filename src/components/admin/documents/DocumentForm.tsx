@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { RecipientSelector } from './recipients/RecipientSelector';
-import { SpecialtySelector, SpecialtyType } from './recipients/SpecialtySelector';
+import { SpecialtySelector } from './recipients/SpecialtySelector';
 
 const formSchema = z.object({
   title: z.string().min(1, {
@@ -36,17 +37,17 @@ const formSchema = z.object({
   }),
 });
 
-export type FormValues = z.infer<typeof formSchema>;
+export type FormData = z.infer<typeof formSchema>;
 
 interface DocumentFormProps {
-  onSubmit: (values: FormValues, file: File | null) => Promise<void>;
+  onSubmit: (values: FormData, file: File | null) => Promise<void>;
   uploading: boolean;
 }
 
 export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
   const [file, setFile] = useState<File | null>(null);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -59,7 +60,7 @@ export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
     setFile(file);
   };
 
-  const submitForm = (values: FormValues) => {
+  const submitForm = (values: FormData) => {
     onSubmit(values, file);
   };
 
@@ -144,7 +145,6 @@ export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
                 ]}
                 maxFileSize={10} // 10MB
                 onFileUploaded={handleFileUpload}
-                disabled={uploading}
               />
             </FormControl>
             <FormDescription>
@@ -163,8 +163,7 @@ export const DocumentForm = ({ onSubmit, uploading }: DocumentFormProps) => {
   );
 };
 
-// Make FormValues and fileCategories available for reuse
-export type { FormValues };
+// Make fileCategories available for reuse
 export const fileCategories = [
   { value: 'legal', label: 'Documentos Legais' },
   { value: 'communication', label: 'Comunicados' },

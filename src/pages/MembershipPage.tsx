@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,28 +19,12 @@ const membershipSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
   registration_number: z.string().min(1, 'Número de registro é obrigatório'),
+  matricula: z.string().min(1, 'Matrícula é obrigatória'),
   address: z.string().min(1, 'Endereço é obrigatório'),
   notes: z.string().optional(),
 });
 
 type MembershipForm = z.infer<typeof membershipSchema>;
-
-// Define the type for the membership request response
-interface MembershipRequest {
-  id: string;
-  user_id: string;
-  name: string;
-  email: string;
-  phone: string;
-  registration_number: string;
-  address: string;
-  notes?: string;
-  id_document_url?: string;
-  registration_document_url?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
 
 const MembershipPage = () => {
   const { user } = useAuth();
@@ -65,7 +50,6 @@ const MembershipPage = () => {
       if (!user) return;
 
       try {
-        // Use profiles table instead since membership_requests doesn't exist yet
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -75,14 +59,13 @@ const MembershipPage = () => {
         if (error) throw error;
         
         if (data) {
-          // Use profile data instead
           setValue('name', data.full_name || '');
           setValue('email', user.email || '');
           setValue('phone', data.phone || '');
           setValue('registration_number', data.registration_number || '');
+          setValue('matricula', data.matricula || '');
           setValue('address', data.address || '');
         } else {
-          // Pre-fill with user data if available
           if (user.user_metadata?.full_name) {
             setValue('name', user.user_metadata.full_name);
           }
@@ -169,6 +152,7 @@ const MembershipPage = () => {
           full_name: data.name,
           phone: data.phone,
           registration_number: data.registration_number,
+          matricula: data.matricula,
           address: data.address,
           notes: data.notes,
           document_id: idDocumentUrl || undefined,
@@ -268,6 +252,18 @@ const MembershipPage = () => {
                       <p className="text-sm text-destructive">{errors.registration_number.message}</p>
                     )}
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="matricula">Matrícula</Label>
+                  <Input
+                    id="matricula"
+                    {...register('matricula')}
+                    disabled={isSubmitting}
+                  />
+                  {errors.matricula && (
+                    <p className="text-sm text-destructive">{errors.matricula.message}</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
