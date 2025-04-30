@@ -209,14 +209,6 @@ const MembershipPage = () => {
     }
   };
 
-  const handleIdDocumentUpload = (file: File | null) => {
-    setIdDocumentFile(file);
-  };
-
-  const handleRegistrationDocumentUpload = (file: File | null) => {
-    setRegistrationDocumentFile(file);
-  };
-
   return (
     <AppLayout>
       <div className="container py-8">
