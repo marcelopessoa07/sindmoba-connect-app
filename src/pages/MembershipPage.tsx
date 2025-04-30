@@ -1,360 +1,415 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from '@/components/ui/use-toast';
 import { FileUploader } from '@/components/FileUploader';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
-
-// Define a more specific profile type that includes matricula
-interface ProfileData {
-  id: string;
-  full_name?: string;
-  email: string;
-  phone?: string;
-  registration_number?: string;
-  matricula?: string;
-  address?: string;
-  notes?: string;
-  document_id?: string;
-  updated_at?: string;
-  cpf?: string;
-  created_at?: string;
-  current_job?: string;
-  role?: string;
-  specialty?: "pml" | "pol";
-}
-
-const membershipSchema = z.object({
-  name: z.string().min(1, 'Nome completo é obrigatório'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().min(1, 'Telefone é obrigatório'),
-  registration_number: z.string().min(1, 'Número de registro é obrigatório'),
-  matricula: z.string().min(1, 'Matrícula é obrigatória'),
-  address: z.string().min(1, 'Endereço é obrigatório'),
-  notes: z.string().optional(),
-});
-
-type MembershipForm = z.infer<typeof membershipSchema>;
 
 const MembershipPage = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
-  const [registrationDocumentFile, setRegistrationDocumentFile] = useState<File | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [hasExistingRequest, setHasExistingRequest] = useState(false);
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    reset
-  } = useForm<MembershipForm>({
-    resolver: zodResolver(membershipSchema)
+  const [formData, setFormData] = useState({
+    fullName: '',
+    cpf: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: 'BA',
+    professionalId: '',
+    type: '',
+    workplace: '',
+    currentJob: '',
+    comments: '',
   });
+  
+  const [fileId, setFileId] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const checkExistingRequest = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        
-        if (data) {
-          // Explicitly cast data to our ProfileData interface that includes matricula
-          const profileData = data as ProfileData;
-
-          setValue('name', profileData.full_name || '');
-          setValue('email', user.email || '');
-          setValue('phone', profileData.phone || '');
-          setValue('registration_number', profileData.registration_number || '');
-          setValue('matricula', profileData.matricula || '');
-          setValue('address', profileData.address || '');
-        } else {
-          if (user.user_metadata?.full_name) {
-            setValue('name', user.user_metadata.full_name);
-          }
-          setValue('email', user.email || '');
-        }
-      } catch (error) {
-        console.error('Error checking existing data:', error);
-      }
-    };
-
-    checkExistingRequest();
-  }, [user, setValue]);
-
-  const handleIdDocumentUpload = (file: File | null) => {
-    setIdDocumentFile(file);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
   };
 
-  const handleRegistrationDocumentUpload = (file: File | null) => {
-    setRegistrationDocumentFile(file);
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
   };
 
-  const onSubmit = async (data: MembershipForm) => {
-    if (!user) {
+  const formatCPF = (value: string) => {
+    // Only allow digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Apply CPF format: 000.000.000-00
+    let formattedValue = digits;
+    if (digits.length > 3) {
+      formattedValue = digits.replace(/^(\d{3})/, '$1.');
+    }
+    if (digits.length > 6) {
+      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})/, '$1.$2.');
+    }
+    if (digits.length > 9) {
+      formattedValue = formattedValue.replace(/^(\d{3})\.(\d{3})\.(\d{3})/, '$1.$2.$3-');
+    }
+
+    return formattedValue;
+  };
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedCPF = formatCPF(e.target.value);
+    setFormData(prevState => ({
+      ...prevState,
+      cpf: formattedCPF
+    }));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow digits
+    const digits = e.target.value.replace(/\D/g, '');
+    
+    // Apply phone format: (00) 00000-0000
+    let formattedValue = digits;
+    if (digits.length > 2) {
+      formattedValue = digits.replace(/^(\d{2})/, '($1) ');
+    }
+    if (digits.length > 7) {
+      formattedValue = formattedValue.replace(/^(\(\d{2}\) )(\d{5})/, '$1$2-');
+    }
+
+    setFormData(prevState => ({
+      ...prevState,
+      phone: formattedValue
+    }));
+  };
+
+  const handleFileUploaded = (fileData: { id: string, name: string, size: number }) => {
+    setFileId(fileData.id);
+    setFileName(fileData.name);
+  };
+
+  const handleUploadProgress = (isCurrentlyUploading: boolean) => {
+    setIsUploading(isCurrentlyUploading);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!formData.fullName || !formData.cpf || !formData.email || !formData.type || !fileId) {
       toast({
-        title: "Erro de autenticação",
-        description: "Você precisa estar logado para enviar uma solicitação de filiação.",
+        title: "Erro no formulário",
+        description: "Por favor, preencha todos os campos obrigatórios e envie o documento PDF.",
         variant: "destructive",
       });
       return;
     }
-
+    
     setIsSubmitting(true);
 
-    try {
-      const now = new Date().toISOString();
-      const userId = user.id;
-
-      // Upload documents if provided
-      let idDocumentUrl = '';
-      let registrationDocumentUrl = '';
-
-      if (idDocumentFile) {
-        const fileExt = idDocumentFile.name.split('.').pop();
-        const filePath = `membership/${userId}_id_${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase
-          .storage
-          .from('membership')
-          .upload(filePath, idDocumentFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase
-          .storage
-          .from('membership')
-          .getPublicUrl(filePath);
-
-        idDocumentUrl = urlData.publicUrl;
-      }
-
-      if (registrationDocumentFile) {
-        const fileExt = registrationDocumentFile.name.split('.').pop();
-        const filePath = `membership/${userId}_reg_${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase
-          .storage
-          .from('membership')
-          .upload(filePath, registrationDocumentFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase
-          .storage
-          .from('membership')
-          .getPublicUrl(filePath);
-
-        registrationDocumentUrl = urlData.publicUrl;
-      }
-
-      // Update profile instead of using membership_requests
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.name,
-          phone: data.phone,
-          registration_number: data.registration_number,
-          matricula: data.matricula,
-          address: data.address,
-          notes: data.notes,
-          document_id: idDocumentUrl || undefined,
-          updated_at: now
-        })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: hasExistingRequest ? "Solicitação atualizada" : "Solicitação enviada",
-        description: hasExistingRequest 
-          ? "Sua solicitação de filiação foi atualizada com sucesso." 
-          : "Sua solicitação de filiação foi enviada com sucesso.",
-      });
-
-      // Reset form and files
-      setIdDocumentFile(null);
-      setRegistrationDocumentFile(null);
-      if (formRef.current) {
-        formRef.current.reset();
-      }
-    } catch (error: any) {
-      console.error('Error submitting membership request:', error);
-      toast({
-        title: "Erro ao enviar solicitação",
-        description: error.message || "Ocorreu um erro ao enviar sua solicitação de filiação. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      toast({
+        title: "Solicitação enviada com sucesso!",
+        description: "Sua solicitação de filiação foi recebida. Entraremos em contato em breve.",
+      });
+      
+      // Reset form
+      setFormData({
+        fullName: '',
+        cpf: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: 'BA',
+        professionalId: '',
+        type: '',
+        workplace: '',
+        currentJob: '',
+        comments: '',
+      });
+      setFileId(null);
+      setFileName(null);
+    }, 1500);
   };
 
   return (
-    <AppLayout>
-      <div className="container py-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Filiação ao Sindicato</h1>
-          <p className="text-gray-600 mb-8">
-            Preencha o formulário abaixo para solicitar sua filiação ao SINDMOBA. 
-            Nossa equipe analisará sua solicitação e entrará em contato em breve.
-          </p>
+    <div className="sindmoba-container">
+      <h2 className="mb-2">Filiação ao Sindicato</h2>
+      <p className="mb-6 text-gray-600">
+        Preencha o formulário abaixo com seus dados para iniciar o processo de filiação ao SINDMOBA.
+      </p>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Dados Pessoais */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Dados Pessoais</h3>
           
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <form onSubmit={handleSubmit(onSubmit)} ref={formRef} className="space-y-6">
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <Input
-                      id="name"
-                      {...register('name')}
-                      disabled={isSubmitting}
-                    />
-                    {errors.name && (
-                      <p className="text-sm text-destructive">{errors.name.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      {...register('email')}
-                      disabled={isSubmitting}
-                    />
-                    {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email.message}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      {...register('phone')}
-                      disabled={isSubmitting}
-                    />
-                    {errors.phone && (
-                      <p className="text-sm text-destructive">{errors.phone.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="registration_number">Número de Registro Profissional</Label>
-                    <Input
-                      id="registration_number"
-                      {...register('registration_number')}
-                      disabled={isSubmitting}
-                    />
-                    {errors.registration_number && (
-                      <p className="text-sm text-destructive">{errors.registration_number.message}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="matricula">Matrícula</Label>
-                  <Input
-                    id="matricula"
-                    {...register('matricula')}
-                    disabled={isSubmitting}
-                  />
-                  {errors.matricula && (
-                    <p className="text-sm text-destructive">{errors.matricula.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="address">Endereço Completo</Label>
-                  <Textarea
-                    id="address"
-                    {...register('address')}
-                    disabled={isSubmitting}
-                    rows={3}
-                  />
-                  {errors.address && (
-                    <p className="text-sm text-destructive">{errors.address.message}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Documento de Identidade (RG ou CNH)</Label>
-                    <FileUploader
-                      bucket="membership"
-                      acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                      maxFileSize={5}
-                      onFileUploaded={handleIdDocumentUpload}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Carteira de Registro Profissional</Label>
-                    <FileUploader
-                      bucket="membership"
-                      acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                      maxFileSize={5}
-                      onFileUploaded={handleRegistrationDocumentUpload}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Observações Adicionais</Label>
-                  <Textarea
-                    id="notes"
-                    {...register('notes')}
-                    disabled={isSubmitting}
-                    placeholder="Informações adicionais que possam ser relevantes para sua filiação"
-                    rows={4}
-                  />
-                </div>
-              </div>
-              
-              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {hasExistingRequest ? (isSubmitting ? "Atualizando..." : "Atualizar Solicitação") : 
-                 (isSubmitting ? "Enviando..." : "Enviar Solicitação")}
-              </Button>
-            </form>
-          </div>
-          
-          <div className="mt-8 bg-muted p-4 rounded-md">
-            <h3 className="font-medium mb-2">Informações Importantes</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Sua solicitação será analisada pela diretoria do sindicato.</li>
-              <li>Documentos anexados devem estar legíveis e completos.</li>
-              <li>O processo de aprovação pode levar até 7 dias úteis.</li>
-              <li>Em caso de dúvidas, entre em contato através do email <span className="font-medium">filiacao@sindmoba.org.br</span>.</li>
-            </ul>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                Nome Completo *
+              </label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="cpf" className="block text-sm font-medium text-gray-700">
+                CPF *
+              </label>
+              <Input
+                id="cpf"
+                name="cpf"
+                value={formData.cpf}
+                onChange={handleCPFChange}
+                maxLength={14}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                E-mail *
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Telefone
+              </label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handlePhoneChange}
+                maxLength={15}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </AppLayout>
+        
+        {/* Endereço */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Endereço</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                Endereço Completo
+              </label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                  Cidade
+                </label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                  Estado
+                </label>
+                <Select 
+                  value={formData.state} 
+                  onValueChange={(value) => handleSelectChange('state', value)}
+                >
+                  <SelectTrigger id="state">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BA">Bahia</SelectItem>
+                    <SelectItem value="AC">Acre</SelectItem>
+                    <SelectItem value="AL">Alagoas</SelectItem>
+                    <SelectItem value="AP">Amapá</SelectItem>
+                    <SelectItem value="AM">Amazonas</SelectItem>
+                    <SelectItem value="CE">Ceará</SelectItem>
+                    <SelectItem value="DF">Distrito Federal</SelectItem>
+                    <SelectItem value="ES">Espírito Santo</SelectItem>
+                    <SelectItem value="GO">Goiás</SelectItem>
+                    <SelectItem value="MA">Maranhão</SelectItem>
+                    <SelectItem value="MT">Mato Grosso</SelectItem>
+                    <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                    <SelectItem value="MG">Minas Gerais</SelectItem>
+                    <SelectItem value="PA">Pará</SelectItem>
+                    <SelectItem value="PB">Paraíba</SelectItem>
+                    <SelectItem value="PR">Paraná</SelectItem>
+                    <SelectItem value="PE">Pernambuco</SelectItem>
+                    <SelectItem value="PI">Piauí</SelectItem>
+                    <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                    <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                    <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                    <SelectItem value="RO">Rondônia</SelectItem>
+                    <SelectItem value="RR">Roraima</SelectItem>
+                    <SelectItem value="SC">Santa Catarina</SelectItem>
+                    <SelectItem value="SP">São Paulo</SelectItem>
+                    <SelectItem value="SE">Sergipe</SelectItem>
+                    <SelectItem value="TO">Tocantins</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Dados Profissionais */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Dados Profissionais</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="professionalId" className="block text-sm font-medium text-gray-700">
+                CRM / CRO *
+              </label>
+              <Input
+                id="professionalId"
+                name="professionalId"
+                value={formData.professionalId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                Especialidade *
+              </label>
+              <Select 
+                value={formData.type} 
+                onValueChange={(value) => handleSelectChange('type', value)}
+              >
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Selecione sua especialidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pml">Perito Médico Legal (PML)</SelectItem>
+                  <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="workplace" className="block text-sm font-medium text-gray-700">
+                Local de Trabalho
+              </label>
+              <Input
+                id="workplace"
+                name="workplace"
+                value={formData.workplace}
+                onChange={handleChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="currentJob" className="block text-sm font-medium text-gray-700">
+                Cargo Atual
+              </label>
+              <Input
+                id="currentJob"
+                name="currentJob"
+                value={formData.currentJob}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Documentação */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Documentação</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Documento PDF *
+              </label>
+              <FileUploader 
+                bucket="registration-documents"
+                acceptedFileTypes={["application/pdf"]}
+                maxFileSize={5}
+                onFileUploaded={handleFileUploaded}
+                onUploadProgress={handleUploadProgress}
+              />
+              {fileName && (
+                <p className="text-sm text-green-600">
+                  Arquivo enviado: {fileName}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="comments" className="block text-sm font-medium text-gray-700">
+            Observações
+          </label>
+          <Textarea
+            id="comments"
+            name="comments"
+            value={formData.comments}
+            onChange={handleChange}
+            placeholder="Informações adicionais que você gostaria de compartilhar"
+            className="h-24"
+          />
+        </div>
+        
+        <div className="rounded-lg bg-sindmoba-light p-4 text-sm text-gray-700">
+          <p>Após o envio do formulário, nossa equipe analisará seus dados e entrará em contato para 
+             prosseguir com o processo de filiação. Você receberá um e-mail com as próximas etapas.</p>
+        </div>
+        
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            className="bg-sindmoba-primary hover:bg-sindmoba-secondary"
+            disabled={isSubmitting || isUploading || !fileId}
+          >
+            {isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 

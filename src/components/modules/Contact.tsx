@@ -116,7 +116,7 @@ const Contact = () => {
               onClick={handleJuridicClick}
               className="w-full bg-sindmoba-primary hover:bg-sindmoba-secondary"
             >
-              Solicitar Apoio Jurídico
+              Fale com o Jurídico
             </Button>
             
             <Button 

@@ -373,83 +373,68 @@ const AdminNewsPage = () => {
         )}
       </div>
 
-      {/* Add/Edit Dialog - Ajustado para ser mais compacto */}
+      {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? 'Editar Notícia' : 'Adicionar Notícia'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
-            <div className="space-y-3 py-2">
-              <div className="grid w-full gap-1">
-                <Label htmlFor="title" className="text-sm">Título</Label>
+            <div className="space-y-4 py-4">
+              <div className="grid w-full gap-2">
+                <Label htmlFor="title">Título</Label>
                 <Input
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="Digite o título da notícia"
-                  className="h-8 text-sm"
                   required
                 />
               </div>
               
-              <div className="grid w-full gap-1">
-                <Label htmlFor="summary" className="text-sm">Resumo</Label>
+              <div className="grid w-full gap-2">
+                <Label htmlFor="summary">Resumo</Label>
                 <Textarea
                   id="summary"
                   name="summary"
                   value={formData.summary}
                   onChange={handleInputChange}
                   placeholder="Digite um breve resumo da notícia"
-                  className="min-h-[60px] text-sm"
+                  className="min-h-[80px]"
                   required
                 />
               </div>
               
-              <div className="grid w-full gap-1">
-                <Label htmlFor="content" className="text-sm">Conteúdo</Label>
+              <div className="grid w-full gap-2">
+                <Label htmlFor="content">Conteúdo</Label>
                 <Textarea
                   id="content"
                   name="content"
                   value={formData.content}
                   onChange={handleInputChange}
                   placeholder="Digite o conteúdo completo da notícia"
-                  className="min-h-[120px] text-sm"
+                  className="min-h-[200px]"
                   required
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid w-full gap-1">
-                  <Label htmlFor="published_at" className="text-sm">Data de Publicação</Label>
-                  <Input
-                    id="published_at"
-                    name="published_at"
-                    type="date"
-                    value={formData.published_at}
-                    onChange={handleInputChange}
-                    className="h-8 text-sm"
-                    required
-                  />
-                </div>
-                
-                <div className="flex flex-col justify-end">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Switch 
-                      checked={formData.is_featured} 
-                      onCheckedChange={handleSwitchChange} 
-                      id="is_featured"
-                    />
-                    <Label htmlFor="is_featured" className="text-sm">Destacar notícia</Label>
-                  </div>
-                </div>
+              <div className="grid w-full gap-2">
+                <Label htmlFor="published_at">Data de Publicação</Label>
+                <Input
+                  id="published_at"
+                  name="published_at"
+                  type="date"
+                  value={formData.published_at}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
               
-              <div className="grid w-full gap-1">
-                <Label htmlFor="image" className="text-sm">Imagem (Opcional)</Label>
+              <div className="grid w-full gap-2">
+                <Label htmlFor="image">Imagem (Opcional)</Label>
                 <div className="flex items-center">
                   <Input
                     id="image"
@@ -463,20 +448,20 @@ const AdminNewsPage = () => {
                       type="button"
                       variant="outline"
                       onClick={() => document.getElementById('image')?.click()}
-                      className="flex-shrink-0 h-8 text-xs"
+                      className="flex-shrink-0"
                     >
-                      <Upload className="h-3 w-3 mr-1" /> Selecionar imagem
+                      <Upload className="h-4 w-4 mr-2" /> Selecionar imagem
                     </Button>
-                    <span className="ml-3 text-xs text-gray-500 truncate">
+                    <span className="ml-3 text-sm text-gray-500">
                       {image ? image.name : editingItem && editingItem.image_url ? 'Manter imagem atual' : 'Nenhuma imagem selecionada'}
                     </span>
                   </div>
                 </div>
                 
                 {imagePreview && (
-                  <div className="mt-1">
-                    <p className="text-xs text-gray-500">Pré-visualização:</p>
-                    <div className="border rounded-md overflow-hidden h-20 w-auto">
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 mb-1">Pré-visualização:</p>
+                    <div className="border rounded-md overflow-hidden h-32 w-auto">
                       <img 
                         src={imagePreview} 
                         alt="Preview" 
@@ -487,30 +472,39 @@ const AdminNewsPage = () => {
                 )}
               </div>
               
-              {/* Notification target mais compacto */}
-              <div className="grid w-full gap-1">
-                <Label className="text-sm">Notificar</Label>
+              {/* Notification target */}
+              <div className="grid w-full gap-2">
+                <Label>Notificar</Label>
                 <RadioGroup 
                   value={formData.notify_target} 
                   onValueChange={handleNotifyTargetChange}
-                  className="flex space-x-4"
+                  className="flex flex-col space-y-2"
                 >
                   {notificationTargets.map((target) => (
-                    <div key={target.value} className="flex items-center space-x-1">
+                    <div key={target.value} className="flex items-center space-x-2">
                       <RadioGroupItem value={target.value} id={`notify-news-${target.value}`} />
-                      <Label htmlFor={`notify-news-${target.value}`} className="text-xs">{target.label}</Label>
+                      <Label htmlFor={`notify-news-${target.value}`}>{target.label}</Label>
                     </div>
                   ))}
                 </RadioGroup>
               </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={formData.is_featured} 
+                  onCheckedChange={handleSwitchChange} 
+                  id="is_featured"
+                />
+                <Label htmlFor="is_featured">Destacar notícia</Label>
+              </div>
             </div>
-            <DialogFooter className="pt-1">
+            <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline">
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={uploading} size="sm">
+              <Button type="submit" disabled={uploading}>
                 {uploading ? 'Enviando...' : editingItem ? 'Atualizar' : 'Adicionar'}
               </Button>
             </DialogFooter>
@@ -520,14 +514,14 @@ const AdminNewsPage = () => {
 
       {/* View News Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Visualizar Notícia</DialogTitle>
           </DialogHeader>
           {viewingItem && (
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-4">
               <h2 className="text-xl font-bold">{viewingItem.title}</h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-500">
                 Publicado em {formatDate(viewingItem.published_at)}
               </p>
               
@@ -542,27 +536,27 @@ const AdminNewsPage = () => {
               )}
               
               <div>
-                <h3 className="font-semibold text-sm">Resumo</h3>
-                <p className="text-sm">{viewingItem.summary}</p>
+                <h3 className="font-semibold">Resumo</h3>
+                <p>{viewingItem.summary}</p>
               </div>
               
               <div>
-                <h3 className="font-semibold text-sm">Conteúdo</h3>
-                <div className="prose max-w-none text-sm">
+                <h3 className="font-semibold">Conteúdo</h3>
+                <div className="prose max-w-none">
                   {viewingItem.content.split('\n').map((paragraph, i) => (
                     <p key={i}>{paragraph}</p>
                   ))}
                 </div>
               </div>
               
-              <div className="flex items-center text-sm">
+              <div className="flex items-center">
                 <span className="font-semibold mr-2">Destaque:</span>
                 <span className={`px-2 py-1 rounded text-xs ${viewingItem.is_featured ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                   {viewingItem.is_featured ? 'Sim' : 'Não'}
                 </span>
               </div>
               
-              <div className="text-sm">
+              <div>
                 <h3 className="font-semibold">Notificações enviadas para:</h3>
                 <p>
                   {viewingItem.notify_target === 'all' 
@@ -576,7 +570,7 @@ const AdminNewsPage = () => {
           )}
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" size="sm">Fechar</Button>
+              <Button variant="outline">Fechar</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>

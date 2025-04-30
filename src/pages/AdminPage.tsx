@@ -70,9 +70,7 @@ interface Member {
   created_at: string | null;
 }
 
-interface AdminPageProps {} 
-
-const AdminPage = ({}: AdminPageProps) => {
+const AdminPage = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -289,11 +287,6 @@ const AdminPage = ({}: AdminPageProps) => {
       default:
         return 'Não especificado';
     }
-  };
-
-  const handleRegistrationSuccess = async () => {
-    // Add implementation if needed
-    console.log("Member registration successful");
   };
 
   return (
@@ -625,7 +618,7 @@ const AdminPage = ({}: AdminPageProps) => {
         </TabsContent>
         
         <TabsContent value="register">
-          <MemberRegistration onRegistrationSuccess={handleRegistrationSuccess} />
+          <MemberRegistration onRegistrationSuccess={fetchMembers} />
         </TabsContent>
       </Tabs>
     </AdminLayout>

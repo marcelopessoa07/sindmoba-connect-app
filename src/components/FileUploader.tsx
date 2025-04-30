@@ -8,7 +8,7 @@ interface FileUploaderProps {
   bucket: string;
   acceptedFileTypes: string[];
   maxFileSize: number; // in MB
-  onFileUploaded: (fileData: File | null) => void;
+  onFileUploaded: (fileData: { id: string; name: string; size: number }) => void;
   onUploadProgress?: (isUploading: boolean) => void;
 }
 
@@ -52,8 +52,15 @@ export const FileUploader = ({
     if (onUploadProgress) onUploadProgress(true);
     
     try {
-      // Pass the file directly to the parent component
-      onFileUploaded(file);
+      // Create an object with the expected properties
+      const fileData = {
+        id: `temp_${Date.now()}_${file.name.replace(/\s+/g, '_')}`, // Generate a temporary ID
+        name: file.name,
+        size: file.size
+      };
+      
+      // Pass the file data to the parent component
+      onFileUploaded(fileData);
       
       toast({
         title: "Arquivo selecionado com sucesso",
