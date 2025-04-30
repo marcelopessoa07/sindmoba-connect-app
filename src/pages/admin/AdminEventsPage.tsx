@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -378,18 +377,19 @@ const AdminEventsPage = () => {
         )}
       </div>
 
-      {/* Add/Edit Dialog */}
+      {/* Add/Edit Dialog - Redesigned to be more compact */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>
               {editingEvent ? 'Editar Evento' : 'Adicionar Evento'}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 py-4">
-              <div className="grid w-full gap-2">
-                <Label htmlFor="title">Título</Label>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-3">
+              {/* Title field */}
+              <div>
+                <Label htmlFor="title" className="text-sm">Título</Label>
                 <Input
                   id="title"
                   name="title"
@@ -397,29 +397,19 @@ const AdminEventsPage = () => {
                   onChange={handleInputChange}
                   placeholder="Digite o título do evento"
                   required
+                  className="h-9"
                 />
               </div>
               
-              <div className="grid w-full gap-2">
-                <Label htmlFor="description">Descrição (Opcional)</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Descreva brevemente o evento"
-                  className="min-h-[80px]"
-                />
-              </div>
-              
-              <div className="grid w-full gap-2">
-                <Label htmlFor="event_type">Tipo de Evento</Label>
+              {/* Event type field */}
+              <div>
+                <Label htmlFor="event_type" className="text-sm">Tipo de Evento</Label>
                 <Select
                   value={formData.event_type}
                   onValueChange={handleEventTypeChange}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue placeholder="Selecione o tipo de evento" />
                   </SelectTrigger>
                   <SelectContent>
@@ -432,9 +422,10 @@ const AdminEventsPage = () => {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Data de Início</Label>
+              {/* Date and time fields in a more compact layout */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="start_date" className="text-sm">Data de Início</Label>
                   <Input
                     id="start_date"
                     name="start_date"
@@ -442,10 +433,11 @@ const AdminEventsPage = () => {
                     value={formData.start_date}
                     onChange={handleInputChange}
                     required
+                    className="h-9"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="start_time">Hora de Início</Label>
+                <div>
+                  <Label htmlFor="start_time" className="text-sm">Hora de Início</Label>
                   <Input
                     id="start_time"
                     name="start_time"
@@ -453,13 +445,14 @@ const AdminEventsPage = () => {
                     value={formData.start_time}
                     onChange={handleInputChange}
                     required
+                    className="h-9"
                   />
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="end_date">Data de Término</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="end_date" className="text-sm">Data de Término</Label>
                   <Input
                     id="end_date"
                     name="end_date"
@@ -467,10 +460,11 @@ const AdminEventsPage = () => {
                     value={formData.end_date}
                     onChange={handleInputChange}
                     required
+                    className="h-9"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="end_time">Hora de Término</Label>
+                <div>
+                  <Label htmlFor="end_time" className="text-sm">Hora de Término</Label>
                   <Input
                     id="end_time"
                     name="end_time"
@@ -478,45 +472,63 @@ const AdminEventsPage = () => {
                     value={formData.end_time}
                     onChange={handleInputChange}
                     required
+                    className="h-9"
                   />
                 </div>
               </div>
               
-              <div className="grid w-full gap-2">
-                <Label htmlFor="location">Local (Opcional)</Label>
+              {/* Location field */}
+              <div>
+                <Label htmlFor="location" className="text-sm">Local (Opcional)</Label>
                 <Input
                   id="location"
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="Digite o local do evento"
+                  className="h-9"
                 />
               </div>
               
-              {/* Notification target */}
-              <div className="grid w-full gap-2">
-                <Label>Notificar</Label>
+              {/* Description field with smaller height */}
+              <div>
+                <Label htmlFor="description" className="text-sm">Descrição (Opcional)</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Descreva brevemente o evento"
+                  className="min-h-[60px] resize-none"
+                  rows={2}
+                />
+              </div>
+              
+              {/* Notification targets in a more compact layout */}
+              <div>
+                <Label className="text-sm mb-1 block">Notificar</Label>
                 <RadioGroup 
                   value={formData.notify_target} 
                   onValueChange={handleNotifyTargetChange}
-                  className="flex flex-col space-y-2"
+                  className="flex flex-row space-x-4"
                 >
                   {notificationTargets.map((target) => (
-                    <div key={target.value} className="flex items-center space-x-2">
+                    <div key={target.value} className="flex items-center space-x-1">
                       <RadioGroupItem value={target.value} id={`notify-${target.value}`} />
-                      <Label htmlFor={`notify-${target.value}`}>{target.label}</Label>
+                      <Label htmlFor={`notify-${target.value}`} className="text-sm">{target.label}</Label>
                     </div>
                   ))}
                 </RadioGroup>
               </div>
             </div>
-            <DialogFooter>
+
+            <DialogFooter className="pt-2">
               <DialogClose asChild>
-                <Button type="button" variant="outline">
+                <Button type="button" variant="outline" size="sm">
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit">
+              <Button type="submit" size="sm">
                 {editingEvent ? 'Atualizar' : 'Adicionar'}
               </Button>
             </DialogFooter>
@@ -526,50 +538,50 @@ const AdminEventsPage = () => {
 
       {/* View Event Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Visualizar Evento</DialogTitle>
           </DialogHeader>
           {viewingEvent && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-3 py-2">
               <div className="flex items-center">
-                <CalendarDays className="h-10 w-10 text-sindmoba-primary mr-4" />
+                <CalendarDays className="h-8 w-8 text-sindmoba-primary mr-3" />
                 <div>
-                  <h2 className="text-xl font-bold">{viewingEvent.title}</h2>
+                  <h2 className="text-lg font-bold">{viewingEvent.title}</h2>
                   <p className="text-sm text-gray-500">
                     {viewingEvent.event_type}
                   </p>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 border-t border-b py-4">
+              <div className="grid grid-cols-2 gap-3 border-t border-b py-2">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Início</h3>
-                  <p>{formatDate(viewingEvent.start_date)}</p>
+                  <h3 className="font-semibold text-xs text-gray-500">Início</h3>
+                  <p className="text-sm">{formatDate(viewingEvent.start_date)}</p>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Término</h3>
-                  <p>{formatDate(viewingEvent.end_date)}</p>
+                  <h3 className="font-semibold text-xs text-gray-500">Término</h3>
+                  <p className="text-sm">{formatDate(viewingEvent.end_date)}</p>
                 </div>
               </div>
               
               {viewingEvent.location && (
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Local</h3>
-                  <p>{viewingEvent.location}</p>
+                  <h3 className="font-semibold text-xs text-gray-500">Local</h3>
+                  <p className="text-sm">{viewingEvent.location}</p>
                 </div>
               )}
               
               {viewingEvent.description && (
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-500">Descrição</h3>
-                  <p>{viewingEvent.description}</p>
+                  <h3 className="font-semibold text-xs text-gray-500">Descrição</h3>
+                  <p className="text-sm">{viewingEvent.description}</p>
                 </div>
               )}
               
               <div>
-                <h3 className="font-semibold text-sm text-gray-500">Notificações</h3>
-                <p>
+                <h3 className="font-semibold text-xs text-gray-500">Notificações</h3>
+                <p className="text-sm">
                   {viewingEvent.notify_target === 'all' 
                     ? 'Todos os membros' 
                     : viewingEvent.notify_target === 'pml'
@@ -581,7 +593,7 @@ const AdminEventsPage = () => {
           )}
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Fechar</Button>
+              <Button variant="outline" size="sm">Fechar</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
