@@ -5,6 +5,7 @@ import { Download, Trash2, AlertCircle, FileX } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentPreviewDialogProps {
   open: boolean;
@@ -24,14 +25,24 @@ const DocumentPreviewDialog = ({
   const fileNotAvailable = !documentUrl || documentUrl === '';
   const [isPdfLoading, setIsPdfLoading] = useState(true);
   const [pdfError, setPdfError] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Reset states when dialog opens or document changes
     if (open) {
       setIsPdfLoading(true);
       setPdfError(false);
+
+      // Show toast for missing files
+      if (fileNotAvailable) {
+        toast({
+          title: "Arquivo não disponível",
+          description: "O arquivo não está disponível ou pode ter sido removido.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [open, document]);
+  }, [open, document, documentUrl, fileNotAvailable, toast]);
 
   const handlePdfLoad = () => {
     setIsPdfLoading(false);
@@ -40,6 +51,12 @@ const DocumentPreviewDialog = ({
   const handlePdfError = () => {
     setIsPdfLoading(false);
     setPdfError(true);
+    
+    toast({
+      title: "Erro ao carregar PDF",
+      description: "Não foi possível visualizar o arquivo. Tente baixá-lo diretamente.",
+      variant: "destructive",
+    });
   };
 
   return (
