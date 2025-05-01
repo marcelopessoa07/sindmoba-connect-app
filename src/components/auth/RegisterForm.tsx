@@ -15,6 +15,7 @@ const RegisterForm = () => {
   const [cpf, setCpf] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [professionalId, setProfessionalId] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState(''); // Novo campo para matrícula
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [currentJob, setCurrentJob] = useState('');
@@ -43,6 +44,7 @@ const RegisterForm = () => {
           cpf,
           specialty: specialization,
           registration_number: professionalId,
+          registration_code: registrationNumber, // Novo campo de matrícula
           phone,
           address,
           current_job: currentJob,
@@ -248,6 +250,20 @@ const RegisterForm = () => {
             placeholder="Seu número de registro"
             value={professionalId}
             onChange={(e) => setProfessionalId(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
+            Matrícula
+          </label>
+          <Input
+            id="registrationNumber"
+            type="text"
+            placeholder="Número da sua matrícula"
+            value={registrationNumber}
+            onChange={(e) => setRegistrationNumber(e.target.value)}
             required
           />
         </div>

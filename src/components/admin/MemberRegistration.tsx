@@ -21,6 +21,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
     cpf: '',
     specialization: '',
     professionalId: '',
+    registrationCode: '', // Novo campo para matrícula
     phone: '',
     address: '',
     currentJob: '',
@@ -100,6 +101,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
           cpf: formData.cpf,
           specialty: formData.specialization,
           registration_number: formData.professionalId,
+          registration_code: formData.registrationCode, // Novo campo para matrícula
           phone: formData.phone,
           address: formData.address,
           current_job: formData.currentJob,
@@ -138,6 +140,7 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
         cpf: '',
         specialization: '',
         professionalId: '',
+        registrationCode: '', // Limpar o novo campo
         phone: '',
         address: '',
         currentJob: '',
@@ -265,6 +268,19 @@ const MemberRegistration = ({ onRegistrationSuccess }: MemberRegistrationProps) 
             value={formData.professionalId}
             onChange={handleChange}
             required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="registrationCode" className="text-sm font-medium text-gray-700">
+            Matrícula
+          </label>
+          <Input
+            id="registrationCode"
+            name="registrationCode"
+            value={formData.registrationCode}
+            onChange={handleChange}
+            placeholder="Número da matrícula"
           />
         </div>
 

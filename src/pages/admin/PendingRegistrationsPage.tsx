@@ -48,6 +48,7 @@ interface PendingRegistration {
   cpf: string | null;
   phone: string | null;
   registration_number: string | null;
+  registration_code: string | null; // Novo campo para matrícula
   specialty: "pml" | "pol" | null;
   created_at: string | null;
   address: string | null;
@@ -119,6 +120,7 @@ const PendingRegistrationsPage = () => {
       cpf: registration.cpf,
       phone: registration.phone,
       registration_number: registration.registration_number,
+      registration_code: registration.registration_code, // Novo campo para matrícula
       specialty: registration.specialty,
       address: registration.address,
       current_job: registration.current_job,
@@ -140,9 +142,11 @@ const PendingRegistrationsPage = () => {
           cpf: selectedRegistration.cpf,
           phone: selectedRegistration.phone,
           registration_number: selectedRegistration.registration_number,
+          registration_code: selectedRegistration.registration_code, // Novo campo para matrícula
           specialty: selectedRegistration.specialty,
           address: selectedRegistration.address,
-          current_job: selectedRegistration.current_job
+          current_job: selectedRegistration.current_job,
+          document_id: selectedRegistration.document_id
         }
       });
 
@@ -460,14 +464,20 @@ const PendingRegistrationsPage = () => {
                 </div>
               </div>
               
-              <div>
-                <h3 className="text-sm text-gray-500">Endereço</h3>
-                <p>{selectedRegistration.address || 'Não informado'}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">Matrícula</h3>
+                  <p>{selectedRegistration.registration_code || 'Não informado'}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">Cargo Atual</h3>
+                  <p>{selectedRegistration.current_job || 'Não informado'}</p>
+                </div>
               </div>
               
               <div>
-                <h3 className="text-sm text-gray-500">Local de Trabalho Atual</h3>
-                <p>{selectedRegistration.current_job || 'Não informado'}</p>
+                <h3 className="text-sm text-gray-500">Endereço</h3>
+                <p>{selectedRegistration.address || 'Não informado'}</p>
               </div>
               
               <div>
@@ -578,6 +588,17 @@ const PendingRegistrationsPage = () => {
                         placeholder="Digite o número de registro"
                       />
                     </div>
+                  </div>
+                  
+                  <div className="grid w-full gap-2">
+                    <Label htmlFor="registration_code">Matrícula</Label>
+                    <Input
+                      id="registration_code"
+                      name="registration_code"
+                      value={formData.registration_code || ''}
+                      onChange={handleInputChange}
+                      placeholder="Digite o número da matrícula"
+                    />
                   </div>
                   
                   <div className="grid w-full gap-2">
