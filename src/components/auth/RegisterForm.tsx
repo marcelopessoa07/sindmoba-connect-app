@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { FileUploader } from '@/components/FileUploader';
+import { ExternalLink } from 'lucide-react';
 
 const RegisterForm = () => {
   const [fullName, setFullName] = useState('');
@@ -280,6 +281,47 @@ const RegisterForm = () => {
             onChange={(e) => setCurrentJob(e.target.value)}
             required
           />
+        </div>
+        
+        {/* Required Documents Section */}
+        <div className="rounded-lg border bg-white p-4 shadow-sm">
+          <h3 className="mb-2 font-medium text-gray-800">OS SEGUINTES DOCUMENTOS DEVEM SER PREENCHIDOS E ASSINADOS. APÓS FAZER O UPLOAD DOS MESMOS</h3>
+          
+          <ul className="space-y-2 mb-2">
+            <li className="flex items-start">
+              <a 
+                href="https://drive.google.com/file/d/1oNqJlCFPZgufOy1hNdTBWHzDGuxEpgCC/view?usp=sharing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sindmoba-primary hover:text-sindmoba-secondary flex items-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-1 inline-block" /> 
+                Rotina para contato Jurídico SINDMOBA
+              </a>
+            </li>
+            <li className="flex items-start">
+              <a 
+                href="https://drive.google.com/file/d/1xnVu8Hrws-BRlStAWtbwqc-xrI8Tn8OI/view?usp=sharing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sindmoba-primary hover:text-sindmoba-secondary flex items-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-1 inline-block" /> 
+                AVISO JURÍDICO Carência 06 meses
+              </a>
+            </li>
+            <li className="flex items-start">
+              <a 
+                href="https://drive.google.com/file/d/1UuBrbZ0aAp3g2Gj1DLiUD3g4L9lqcnJ7/view?usp=sharing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sindmoba-primary hover:text-sindmoba-secondary flex items-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-1 inline-block" /> 
+                Fichas de Autorização e Cadastro - SINDMOBA
+              </a>
+            </li>
+          </ul>
         </div>
 
         <div className="space-y-2">
