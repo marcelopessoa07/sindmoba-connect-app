@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 interface MainMenuProps {
   closeMenu: () => void;
@@ -62,14 +63,30 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
 
   // Handle logout with confirmation
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
       try {
         closeMenu(); // Close menu first for better UX
-        await signOut(); // This will handle the redirect to login page
+        
+        // Navigate to login first to avoid session issues
+        window.location.href = '/login';
+        
+        // Allow time for navigation to start before attempting signOut
+        setTimeout(() => {
+          signOut().catch(error => {
+            console.error("Logout error:", error);
+            // Error is handled by redirection which has already happened
+          });
+        }, 100);
+        
+        toast({
+          title: "Saindo do sistema",
+          description: "Você foi desconectado com sucesso."
+        });
       } catch (error) {
         console.error("Logout error:", error);
-        window.location.href = '/login'; // Fallback redirect
+        // Fallback redirect
+        window.location.href = '/login';
       }
     }
   };

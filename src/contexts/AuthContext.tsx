@@ -128,29 +128,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
       setProfile(null);
       
-      // Additional safety check - clear localStorage manually
+      // Clear all local storage related to authentication
       localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('supabase.auth.refreshToken');
+      localStorage.removeItem('supabase.auth.expires_at');
+      localStorage.removeItem('supabase.auth.expires_in');
       
-      // Then attempt to sign out from Supabase
+      // Then attempt to sign out from Supabase with scope: global
       try {
         const { error } = await supabase.auth.signOut({ scope: 'global' });
         
         if (error) {
           console.error('Error in Supabase signOut:', error);
+          throw error;
         } else {
           console.log('Supabase sign out completed successfully');
         }
       } catch (error) {
         console.error('Exception during Supabase signOut:', error);
+        throw error;
       }
-      
-      // Force redirect to login page after clearing state
-      window.location.href = '/login';
       
     } catch (error) {
       console.error('Error during sign out process:', error);
-      // Even if there's an error, redirect to login
-      window.location.href = '/login';
+      throw error;
     }
   };
 
