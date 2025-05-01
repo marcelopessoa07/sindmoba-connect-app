@@ -316,6 +316,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          registration_code: string | null
           registration_number: string | null
           specialty: string | null
         }
@@ -329,6 +330,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          registration_code?: string | null
           registration_number?: string | null
           specialty?: string | null
         }
@@ -342,6 +344,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          registration_code?: string | null
           registration_number?: string | null
           specialty?: string | null
         }

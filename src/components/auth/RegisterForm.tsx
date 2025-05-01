@@ -15,7 +15,7 @@ const RegisterForm = () => {
   const [cpf, setCpf] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [professionalId, setProfessionalId] = useState('');
-  const [registrationNumber, setRegistrationNumber] = useState(''); // Novo campo para matrícula
+  const [registrationNumber, setRegistrationNumber] = useState(''); // Matrícula field
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [currentJob, setCurrentJob] = useState('');
@@ -44,7 +44,7 @@ const RegisterForm = () => {
           cpf,
           specialty: specialization,
           registration_number: professionalId,
-          registration_code: registrationNumber, // Novo campo de matrícula
+          registration_code: registrationNumber, // Send the Matrícula field data
           phone,
           address,
           current_job: currentJob,
