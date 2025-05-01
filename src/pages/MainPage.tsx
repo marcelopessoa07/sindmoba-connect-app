@@ -1,12 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle, Bell } from 'lucide-react';
+import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 
 interface MenuItem {
   title: string;
@@ -16,188 +14,8 @@ interface MenuItem {
   description: string;
 }
 
-interface Notification {
-  id: string;
-  title: string;
-  time: string;
-  type: 'document' | 'event' | 'news';
-  itemId: string;
-}
-
 const MainPage = () => {
   const { profile } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Fetch notifications from various sources
-  useEffect(() => {
-    if (!profile) return;
-    
-    const fetchNotifications = async () => {
-      setLoading(true);
-      const allNotifications: Notification[] = [];
-      
-      try {
-        // Fetch recent documents
-        const { data: documents } = await supabase
-          .from('documents')
-          .select('id, title, created_at, category')
-          .order('created_at', { ascending: false })
-          .limit(3);
-          
-        if (documents) {
-          documents.forEach(doc => {
-            allNotifications.push({
-              id: `doc-${doc.id}`,
-              title: `Novo documento: ${doc.title}`,
-              time: format(new Date(doc.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: pt }),
-              type: 'document',
-              itemId: doc.id
-            });
-          });
-        }
-        
-        // Fetch upcoming events
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 7); // Events in the next week
-        
-        const { data: events } = await supabase
-          .from('events')
-          .select('id, title, start_date')
-          .lt('start_date', tomorrow.toISOString())
-          .gt('start_date', new Date().toISOString())
-          .order('start_date', { ascending: true })
-          .limit(3);
-          
-        if (events) {
-          events.forEach(event => {
-            allNotifications.push({
-              id: `event-${event.id}`,
-              title: `Evento próximo: ${event.title}`,
-              time: format(new Date(event.start_date), "dd/MM/yyyy 'às' HH:mm", { locale: pt }),
-              type: 'event',
-              itemId: event.id
-            });
-          });
-        }
-        
-        // Fetch recent news
-        const { data: news } = await supabase
-          .from('news')
-          .select('id, title, published_at')
-          .order('published_at', { ascending: false })
-          .limit(3);
-          
-        if (news) {
-          news.forEach(item => {
-            allNotifications.push({
-              id: `news-${item.id}`,
-              title: `Nova notícia: ${item.title}`,
-              time: format(new Date(item.published_at), "dd/MM/yyyy", { locale: pt }),
-              type: 'news',
-              itemId: item.id
-            });
-          });
-        }
-        
-        // Sort notifications by time (newest first)
-        allNotifications.sort((a, b) => {
-          return new Date(b.time).getTime() - new Date(a.time).getTime();
-        });
-        
-        // Take the most recent 5 notifications
-        setNotifications(allNotifications.slice(0, 5));
-        
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchNotifications();
-    
-    // Set up real-time listeners for new content
-    const documentsChannel = supabase
-      .channel('public:documents')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'documents' 
-        },
-        payload => {
-          const doc = payload.new;
-          setNotifications(prev => [{
-            id: `doc-${doc.id}`,
-            title: `Novo documento: ${doc.title}`,
-            time: format(new Date(doc.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: pt }),
-            type: 'document',
-            itemId: doc.id
-          }, ...prev.slice(0, 4)]);
-        }
-      )
-      .subscribe();
-      
-    const eventsChannel = supabase
-      .channel('public:events')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'events' 
-        },
-        payload => {
-          const event = payload.new;
-          setNotifications(prev => [{
-            id: `event-${event.id}`,
-            title: `Novo evento: ${event.title}`,
-            time: format(new Date(event.start_date), "dd/MM/yyyy 'às' HH:mm", { locale: pt }),
-            type: 'event',
-            itemId: event.id
-          }, ...prev.slice(0, 4)]);
-        }
-      )
-      .subscribe();
-      
-    const newsChannel = supabase
-      .channel('public:news')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'news' 
-        },
-        payload => {
-          const news = payload.new;
-          setNotifications(prev => [{
-            id: `news-${news.id}`,
-            title: `Nova notícia: ${news.title}`,
-            time: format(new Date(news.published_at), "dd/MM/yyyy", { locale: pt }),
-            type: 'news',
-            itemId: news.id
-          }, ...prev.slice(0, 4)]);
-        }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(documentsChannel);
-      supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(newsChannel);
-    };
-  }, [profile]);
-
-  const handleNotificationClick = (notification: Notification) => {
-    // Navigate to the appropriate page based on notification type
-    if (notification.type === 'document') {
-      window.location.href = '/documents';
-    } else if (notification.type === 'event') {
-      window.location.href = '/events';
-    } else if (notification.type === 'news') {
-      window.location.href = '/news';
-    }
-  };
 
   const memberMenuItems: MenuItem[] = [
     { 
@@ -320,10 +138,7 @@ const MainPage = () => {
           {profile?.role === 'admin' ? (
             'Painel Administrativo'
           ) : (
-            <>
-              <Bell className="mr-2 h-5 w-5" />
-              Notificações Recentes
-            </>
+            'Bem-vindo ao SINDMOBA'
           )}
         </h3>
         
@@ -331,33 +146,9 @@ const MainPage = () => {
           <p className="text-gray-600 p-3 bg-white rounded-lg">
             Bem-vindo ao painel administrativo do SINDMOBA. Use o menu abaixo para gerenciar o sindicato.
           </p>
-        ) : loading ? (
-          <div className="text-center p-3 bg-white rounded-lg">
-            <p className="text-gray-600">Carregando notificações...</p>
-          </div>
-        ) : notifications.length > 0 ? (
-          <div className="space-y-2">
-            {notifications.map(notification => (
-              <div 
-                key={notification.id}
-                className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div>
-                  <p className="font-medium">{notification.title}</p>
-                  <span className="text-xs text-gray-500">{notification.time}</span>
-                </div>
-                <div className={`w-2 h-2 rounded-full ${
-                  notification.type === 'document' ? 'bg-green-500' : 
-                  notification.type === 'event' ? 'bg-orange-500' : 'bg-blue-500'
-                }`}></div>
-              </div>
-            ))}
-          </div>
         ) : (
           <p className="text-gray-600 p-3 bg-white rounded-lg">
-            Bem-vindo ao SINDMOBA! Você ainda não tem notificações.
-            Quando houver novos comunicados do sindicato, eles aparecerão aqui.
+            Bem-vindo ao SINDMOBA! Use o menu abaixo para acessar os serviços e informações do sindicato.
           </p>
         )}
       </section>
