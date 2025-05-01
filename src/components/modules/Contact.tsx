@@ -19,8 +19,8 @@ const Contact = () => {
   };
 
   const handleJuridicClick = () => {
-    // Open WhatsApp with predefined message for legal department
-    window.open('https://wa.me/5571XXXXXXXX?text=Olá%20Departamento%20Jurídico%20do%20SINDMOBA,%20gostaria%20de%20agendar%20uma%20consulta.', '_blank');
+    // Open email client with predefined subject for legal department
+    window.location.href = 'mailto:juridico@sindmoba.org.br?subject=Solicitação%20de%20Apoio%20Jurídico&body=Olá%20Departamento%20Jurídico%20do%20SINDMOBA,%20gostaria%20de%20solicitar%20apoio%20jurídico%20para%20o%20seguinte%20assunto:%20';
   };
 
   return (
