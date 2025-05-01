@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Download, Trash2, AlertCircle, FileX, ExternalLink } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -53,7 +52,19 @@ const DocumentPreviewDialog = ({
   // Function to open document in new tab
   const openInNewTab = () => {
     if (documentUrl) {
-      window.open(documentUrl, '_blank');
+      window.open(documentUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // Function to handle download - we'll directly use the URL
+  const handleDownload = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (fileNotAvailable || pdfError) {
+      e.preventDefault();
+      toast({
+        title: "Download indisponível",
+        description: "Não foi possível baixar o documento. O arquivo pode não estar mais disponível.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -130,12 +141,25 @@ const DocumentPreviewDialog = ({
               )}
               
               {!fileNotAvailable && (
-                <Button asChild className="mt-4">
-                  <a href={documentUrl} download={document?.title || 'documento'} target="_blank" rel="noreferrer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Baixar Arquivo
-                  </a>
-                </Button>
+                <div className="flex space-x-2 mt-4">
+                  <Button variant="outline" onClick={openInNewTab}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Abrir em Nova Janela
+                  </Button>
+                  
+                  <Button asChild>
+                    <a 
+                      href={documentUrl} 
+                      download={document?.title || 'documento'}
+                      target="_blank" 
+                      rel="noreferrer"
+                      onClick={handleDownload}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Baixar Arquivo
+                    </a>
+                  </Button>
+                </div>
               )}
             </div>
           )}

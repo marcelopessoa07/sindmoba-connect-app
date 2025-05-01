@@ -61,6 +61,13 @@ const AdminDocumentsPage = () => {
         try {
           console.log("Attempting to get signed URL for:", document.file_url);
           
+          // Check if it's already a full URL with protocol
+          if (document.file_url.startsWith('http')) {
+            setDocumentUrl(document.file_url);
+            setIsPreviewDialogOpen(true);
+            return;
+          }
+          
           // Extract just the filename from the full URL path - IMPROVED
           let filePath = document.file_url;
           let bucketName = 'documents';
@@ -90,23 +97,58 @@ const AdminDocumentsPage = () => {
             throw new Error("Could not extract file path from URL");
           }
           
-          // Generate a temporary URL for file viewing/downloading with longer expiry
+          // Try multiple approaches to get a valid URL
+          
+          // 1. First try to get a signed URL
           const { data, error } = await supabase
             .storage
             .from(bucketName)
             .createSignedUrl(filePath, 1800); // Increased expiry to 30 minutes
           
           if (error) {
-            console.error('Storage error:', error);
+            console.error('Storage error when getting signed URL:', error);
             throw error;
           }
           
-          console.log("Signed URL generated successfully:", data.signedUrl);
-          setDocumentUrl(data?.signedUrl || '');
-        } catch (storageError) {
-          console.error('Error generating document URL:', storageError);
-          setDocumentUrl('');
+          if (data?.signedUrl) {
+            console.log("Signed URL generated successfully:", data.signedUrl);
+            setDocumentUrl(data.signedUrl);
+            setIsPreviewDialogOpen(true);
+            return;
+          }
+        } catch (signedUrlError) {
+          console.error('Error generating signed URL:', signedUrlError);
           
+          // 2. Fall back to public URL if signed URL fails
+          try {
+            const bucketName = 'documents'; // Default bucket
+            let filePath = document.file_url;
+            
+            // Extract file path from full URL if needed
+            if (document.file_url.includes('supabase.co/storage/v1/object/public/')) {
+              const parts = document.file_url.split('/storage/v1/object/public/');
+              if (parts.length > 1) {
+                filePath = parts[1];
+              }
+            }
+            
+            const publicUrlResult = supabase
+              .storage
+              .from(bucketName)
+              .getPublicUrl(filePath);
+              
+            if (publicUrlResult.data?.publicUrl) {
+              console.log("Using public URL instead:", publicUrlResult.data.publicUrl);
+              setDocumentUrl(publicUrlResult.data.publicUrl);
+              setIsPreviewDialogOpen(true);
+              return;
+            }
+          } catch (publicUrlError) {
+            console.error('Error getting public URL:', publicUrlError);
+          }
+          
+          // If all attempts fail
+          setDocumentUrl('');
           toast({
             title: 'Erro ao gerar URL do documento',
             description: 'Não foi possível visualizar o documento.',

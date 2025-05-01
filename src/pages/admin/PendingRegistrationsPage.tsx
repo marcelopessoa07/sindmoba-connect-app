@@ -294,34 +294,56 @@ const PendingRegistrationsPage = () => {
         file_type: documentId.endsWith('.pdf') ? 'application/pdf' : 'unknown'
       });
       
-      // First attempt to get a signed URL
-      const { data, error } = await supabase.storage
-        .from('registration-documents')
-        .createSignedUrl(documentId, 3600); // 1 hour expiration
-
-      if (error) {
-        console.error('Error getting signed URL:', error);
+      // First check if the documentId is already a full URL
+      if (documentId.startsWith('http')) {
+        setDocumentUrl(documentId);
+        setIsDocumentPreviewOpen(true);
+        return;
+      }
+      
+      // Try multiple approaches to get the document URL
+      try {
+        console.log("Attempting to get signed URL for:", documentId);
         
-        // If failed, try to get public URL as fallback
+        // First attempt to get a signed URL
+        const { data, error } = await supabase.storage
+          .from('registration-documents')
+          .createSignedUrl(documentId, 3600); // 1 hour expiration
+
+        if (error) {
+          console.error('Error getting signed URL:', error);
+          throw error;
+        }
+        
+        if (data?.signedUrl) {
+          console.log("Got signed URL successfully:", data.signedUrl);
+          setDocumentUrl(data.signedUrl);
+          setIsDocumentPreviewOpen(true);
+          return;
+        }
+      } catch (signedUrlError) {
+        console.error("Failed to get signed URL:", signedUrlError);
+        // Fall through to try public URL
+      }
+      
+      // If failed, try to get public URL as fallback
+      try {
         const publicUrlData = supabase.storage
           .from('registration-documents')
           .getPublicUrl(documentId);
         
         if (publicUrlData.data?.publicUrl) {
+          console.log("Using public URL instead:", publicUrlData.data.publicUrl);
           setDocumentUrl(publicUrlData.data.publicUrl);
           setIsDocumentPreviewOpen(true);
           return;
         }
-        
-        throw error;
+      } catch (publicUrlError) {
+        console.error("Failed to get public URL:", publicUrlError);
       }
       
-      if (data?.signedUrl) {
-        setDocumentUrl(data.signedUrl);
-        setIsDocumentPreviewOpen(true);
-      } else {
-        throw new Error('Não foi possível gerar URL para o documento');
-      }
+      // If we got here, both methods failed
+      throw new Error('Não foi possível gerar URL para o documento');
     } catch (error: any) {
       console.error('Error getting document URL:', error);
       toast({
