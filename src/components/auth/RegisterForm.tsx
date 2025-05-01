@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -285,7 +284,7 @@ const RegisterForm = () => {
         
         {/* Required Documents Section */}
         <div className="rounded-lg border bg-white p-4 shadow-sm">
-          <h3 className="mb-2 font-medium text-gray-800">OS SEGUINTES DOCUMENTOS DEVEM SER PREENCHIDOS E ASSINADOS. APÓS FAZER O UPLOAD DOS MESMOS</h3>
+          <h3 className="mb-2 font-medium text-gray-800 text-sm">OS SEGUINTES DOCUMENTOS DEVEM SER PREENCHIDOS E ASSINADOS. APÓS, FAZER O UPLOAD DOS MESMOS JUNTO COM A SOLICITAÇÃO DE FILIAÇÃO.</h3>
           
           <ul className="space-y-2 mb-2">
             <li className="flex items-start">
