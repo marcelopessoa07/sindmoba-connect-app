@@ -63,30 +63,32 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
 
   // Handle logout with confirmation
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
+      closeMenu(); // Close menu first for better UX
+      
+      toast({
+        title: "Saindo do sistema",
+        description: "Processando logout..."
+      });
+      
       try {
-        closeMenu(); // Close menu first for better UX
+        await signOut();
         
-        // Navigate to login first to avoid session issues
+        // Force redirect to login page after signOut completes
         window.location.href = '/login';
-        
-        // Allow time for navigation to start before attempting signOut
-        setTimeout(() => {
-          signOut().catch(error => {
-            console.error("Logout error:", error);
-            // Error is handled by redirection which has already happened
-          });
-        }, 100);
-        
-        toast({
-          title: "Saindo do sistema",
-          description: "Você foi desconectado com sucesso."
-        });
       } catch (error) {
         console.error("Logout error:", error);
+        toast({
+          title: "Erro ao sair",
+          description: "Houve um problema ao fazer logout",
+          variant: "destructive"
+        });
+        
         // Fallback redirect
-        window.location.href = '/login';
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
       }
     }
   };

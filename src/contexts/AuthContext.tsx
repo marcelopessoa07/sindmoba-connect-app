@@ -120,37 +120,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    console.log('Starting signOut process...');
+    
     try {
-      console.log('Signing out...');
+      // First, clear all browser storage completely
+      localStorage.clear();
+      sessionStorage.clear();
       
-      // Clear local state first to ensure UI updates quickly
+      // Clear local state first for immediate UI feedback
       setUser(null);
       setSession(null);
       setProfile(null);
       
-      // Clear all local storage related to authentication
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('supabase.auth.refreshToken');
-      localStorage.removeItem('supabase.auth.expires_at');
-      localStorage.removeItem('supabase.auth.expires_in');
+      console.log('Local state cleared, attempting Supabase signOut...');
       
-      // Then attempt to sign out from Supabase with scope: global
-      try {
-        const { error } = await supabase.auth.signOut({ scope: 'global' });
-        
-        if (error) {
-          console.error('Error in Supabase signOut:', error);
-          throw error;
-        } else {
-          console.log('Supabase sign out completed successfully');
-        }
-      } catch (error) {
-        console.error('Exception during Supabase signOut:', error);
+      // Call Supabase signOut with global scope to invalidate on all devices
+      const { error } = await supabase.auth.signOut({ 
+        scope: 'global' 
+      });
+      
+      if (error) {
+        console.error('Error during Supabase signOut:', error);
         throw error;
       }
       
+      console.log('Supabase signOut completed successfully');
+      
+      // Force a page reload to clear any cached state
+      window.location.reload();
+      
     } catch (error) {
-      console.error('Error during sign out process:', error);
+      console.error('Error during signOut process:', error);
       throw error;
     }
   };
