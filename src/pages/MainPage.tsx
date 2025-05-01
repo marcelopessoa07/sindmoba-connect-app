@@ -1,10 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle } from 'lucide-react';
+import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle, BellDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { useContentTimestamps } from '@/hooks/use-content-timestamps';
+import { NotificationDot } from '@/components/ui/notification-dot';
+import { toast } from 'sonner';
 
 interface MenuItem {
   title: string;
@@ -12,10 +15,12 @@ interface MenuItem {
   icon: React.ElementType;
   color: string;
   description: string;
+  contentType?: 'news' | 'documents' | 'events';
 }
 
 const MainPage = () => {
   const { profile } = useAuth();
+  const [timestamps, newContent, markAllAsRead] = useContentTimestamps();
 
   const memberMenuItems: MenuItem[] = [
     { 
@@ -23,21 +28,24 @@ const MainPage = () => {
       path: '/news', 
       icon: List,
       color: '#3498db',
-      description: 'Acompanhe as últimas atualizações do sindicato'
+      description: 'Acompanhe as últimas atualizações do sindicato',
+      contentType: 'news'
     },
     { 
       title: 'Agenda e Eventos', 
       path: '/events', 
       icon: Calendar,
       color: '#f39c12',
-      description: 'Calendário de assembleias, cursos e eventos'
+      description: 'Calendário de assembleias, cursos e eventos',
+      contentType: 'events'
     },
     { 
       title: 'Documentos e Arquivos', 
       path: '/documents', 
       icon: File,
       color: '#27ae60',
-      description: 'Acesse documentos oficiais e informativos'
+      description: 'Acesse documentos oficiais e informativos',
+      contentType: 'documents'
     },
     { 
       title: 'Legislação e Direitos', 
@@ -109,6 +117,19 @@ const MainPage = () => {
 
   // Select which menu items to display based on user role
   const menuItems = profile?.role === 'admin' ? adminMenuItems : memberMenuItems;
+  
+  // Check if there are any new content items
+  const hasAnyNewContent = !newContent.isLoading && (
+    newContent.hasNewNews || 
+    newContent.hasNewDocuments || 
+    newContent.hasNewEvents
+  );
+  
+  // Handle mark all as read
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+    toast.success("Todas notificações marcadas como lidas");
+  };
 
   return (
     <div className="sindmoba-container">
@@ -140,6 +161,18 @@ const MainPage = () => {
           ) : (
             'Bem-vindo ao SINDMOBA'
           )}
+          
+          {hasAnyNewContent && (
+            <Button 
+              onClick={handleMarkAllAsRead}
+              variant="ghost" 
+              size="sm"
+              className="ml-auto flex items-center text-sm text-sindmoba-primary"
+            >
+              <BellDot className="mr-1 h-4 w-4" />
+              Marcar tudo como lido
+            </Button>
+          )}
         </h3>
         
         {profile?.role === 'admin' ? (
@@ -166,11 +199,22 @@ const MainPage = () => {
               to={item.path}
               className="flex flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
-              <div 
-                className="mb-3 rounded-full p-2" 
-                style={{ backgroundColor: `${item.color}20` }}
-              >
-                <item.icon style={{ color: item.color }} className="h-5 w-5" />
+              <div className="mb-3 flex items-center justify-between">
+                <div 
+                  className="rounded-full p-2 relative" 
+                  style={{ backgroundColor: `${item.color}20` }}
+                >
+                  <item.icon style={{ color: item.color }} className="h-5 w-5" />
+                  {item.contentType === 'news' && newContent.hasNewNews && (
+                    <NotificationDot pulse />
+                  )}
+                  {item.contentType === 'documents' && newContent.hasNewDocuments && (
+                    <NotificationDot pulse />
+                  )}
+                  {item.contentType === 'events' && newContent.hasNewEvents && (
+                    <NotificationDot pulse />
+                  )}
+                </div>
               </div>
               <h4 className="mb-1 font-medium">{item.title}</h4>
               <p className="text-xs text-gray-600">{item.description}</p>
