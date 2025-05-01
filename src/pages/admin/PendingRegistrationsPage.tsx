@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DocumentPreviewDialog from '@/components/admin/documents/DocumentPreviewDialog';
 
 // Define a simpler interface for pending registrations
 interface PendingRegistration {
@@ -66,6 +67,9 @@ const PendingRegistrationsPage = () => {
   const [selectedRegistration, setSelectedRegistration] = useState<PendingRegistration | null>(null);
   const [processingAction, setProcessingAction] = useState(false);
   const [formData, setFormData] = useState<Partial<PendingRegistration>>({});
+  const [isDocumentPreviewOpen, setIsDocumentPreviewOpen] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState('');
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -274,17 +278,50 @@ const PendingRegistrationsPage = () => {
     }
   };
 
-  const viewDocument = (documentId: string | null) => {
-    if (!documentId) return;
-    
-    // Get public URL for the document
-    const { data } = supabase.storage
-      .from('registration-documents')
-      .getPublicUrl(documentId);
-
-    if (data.publicUrl) {
-      window.open(data.publicUrl, '_blank');
+  // New function to handle document preview
+  const openDocumentPreview = async (documentId: string | null) => {
+    if (!documentId) {
+      toast({
+        title: 'Documento não disponível',
+        description: 'Não há documento anexado a esta solicitação.',
+        variant: 'destructive',
+      });
+      return;
     }
+    
+    try {
+      // Get public URL for the document
+      const { data, error } = await supabase.storage
+        .from('registration-documents')
+        .createSignedUrl(documentId, 3600); // 1 hour expiration
+
+      if (error) throw error;
+      
+      if (data && data.signedUrl) {
+        setDocumentUrl(data.signedUrl);
+        setSelectedDocument({
+          title: 'Documento de Filiação',
+          file_type: documentId.endsWith('.pdf') ? 'application/pdf' : 'unknown'
+        });
+        setIsDocumentPreviewOpen(true);
+      }
+    } catch (error: any) {
+      console.error('Error getting document URL:', error);
+      toast({
+        title: 'Erro ao carregar documento',
+        description: error.message || 'Não foi possível carregar o documento. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Dummy function to satisfy DocumentPreviewDialog props
+  const handleDeleteDocument = () => {
+    toast({
+      title: 'Ação não permitida',
+      description: 'Não é possível excluir o documento de uma solicitação pendente.',
+    });
+    setIsDocumentPreviewOpen(false);
   };
 
   return (
@@ -339,7 +376,7 @@ const PendingRegistrationsPage = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => viewDocument(registration.document_id)}
+                        onClick={() => openDocumentPreview(registration.document_id)}
                         className="mx-1"
                         title="Ver documento"
                       >
@@ -488,7 +525,7 @@ const PendingRegistrationsPage = () => {
               {selectedRegistration.document_id && (
                 <Button 
                   variant="outline" 
-                  onClick={() => viewDocument(selectedRegistration.document_id)}
+                  onClick={() => openDocumentPreview(selectedRegistration.document_id)}
                   className="flex items-center gap-2"
                 >
                   <FileText className="h-4 w-4" /> Visualizar Documento
@@ -622,6 +659,20 @@ const PendingRegistrationsPage = () => {
                       placeholder="Digite o local de trabalho atual"
                     />
                   </div>
+
+                  {selectedRegistration.document_id && (
+                    <div className="grid w-full gap-2">
+                      <Label htmlFor="document">Documento Anexado</Label>
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        onClick={() => openDocumentPreview(selectedRegistration.document_id)}
+                        className="flex items-center gap-2 justify-center"
+                      >
+                        <FileText className="h-4 w-4" /> Visualizar Documento
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -644,6 +695,14 @@ const PendingRegistrationsPage = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DocumentPreviewDialog
+        open={isDocumentPreviewOpen}
+        onOpenChange={setIsDocumentPreviewOpen}
+        document={selectedDocument}
+        documentUrl={documentUrl}
+        onDelete={handleDeleteDocument}
+      />
     </div>
   );
 };
