@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -77,7 +77,7 @@ const AdminFAQPage = () => {
   const handleCategoryChange = (value: string) => {
     setFormData({
       ...formData,
-      category: value === "no-category" ? '' : value,
+      category: value === "no-category" ? null : value,
     });
   };
 

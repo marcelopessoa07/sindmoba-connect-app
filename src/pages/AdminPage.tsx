@@ -157,7 +157,7 @@ const AdminPage = () => {
     if (field === 'specialty') {
       setFormData({
         ...formData,
-        specialty: value === '' ? '' : value as SpecialtyType,
+        specialty: value === 'none' ? '' : value as SpecialtyType,
       });
     } else {
       setFormData({
@@ -442,7 +442,7 @@ const AdminPage = () => {
                 <Button 
                   variant="outline"
                   onClick={() => handleResendInvite(viewingMember!)}
-                  disabled={resendingEmail || !viewingMember}
+                  disabled={resendingEmail}
                   className="flex items-center gap-2"
                 >
                   <Mail className="h-4 w-4" /> Reenviar Email de Cadastro
@@ -526,14 +526,14 @@ const AdminPage = () => {
                         <div className="grid w-full gap-2">
                           <Label htmlFor="specialty">Especialidade</Label>
                           <Select 
-                            value={formData.specialty} 
+                            value={formData.specialty || 'none'} 
                             onValueChange={(value) => handleSelectChange('specialty', value)}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione a especialidade" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Não especificado</SelectItem>
+                              <SelectItem value="none">Não especificado</SelectItem>
                               {specialties.map((specialty) => (
                                 <SelectItem key={specialty} value={specialty}>
                                   {getSpecialtyLabel(specialty)}

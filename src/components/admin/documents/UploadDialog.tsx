@@ -1,4 +1,3 @@
-
 import { useState, FormEvent, useEffect } from 'react';
 import { 
   Dialog, 
@@ -383,13 +382,14 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
                         <div>
                           <Label>Especialidade</Label>
                           <Select 
-                            value={selectedSpecialty || ''} 
-                            onValueChange={(value) => setSelectedSpecialty(value)}
+                            value={selectedSpecialty || 'none'} 
+                            onValueChange={(value) => setSelectedSpecialty(value === 'none' ? null : value)}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione a especialidade" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="none">Selecione uma especialidade</SelectItem>
                               {specialtyOptions.map(option => (
                                 <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
                               ))}
