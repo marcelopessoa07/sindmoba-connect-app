@@ -641,14 +641,14 @@ const PendingRegistrationsPage = () => {
                     <div className="grid w-full gap-2">
                       <Label htmlFor="specialty">Especialidade</Label>
                       <Select 
-                        value={formData.specialty || ''} 
+                        value={formData.specialty || undefined} 
                         onValueChange={(value) => handleSelectChange('specialty', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a especialidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Não especificado</SelectItem>
+                          <SelectItem value="not-specified">Não especificado</SelectItem>
                           <SelectItem value="pml">Perito Médico Legal</SelectItem>
                           <SelectItem value="pol">Perito Odonto Legal</SelectItem>
                         </SelectContent>

@@ -267,14 +267,14 @@ const ProfilePage = () => {
                   Especialidade
                 </label>
                 <Select 
-                  value={profile.specialty || null} 
+                  value={profile.specialty || undefined} 
                   onValueChange={handleSelectChange}
                 >
                   <SelectTrigger id="specialty">
                     <SelectValue placeholder="Selecione sua especialidade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Não especificado</SelectItem>
+                    <SelectItem value="not-specified">Não especificado</SelectItem>
                     <SelectItem value="pml">Perito Médico Legal (PML)</SelectItem>
                     <SelectItem value="pol">Perito Odonto Legal (POL)</SelectItem>
                   </SelectContent>
