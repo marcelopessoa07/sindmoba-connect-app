@@ -12,6 +12,7 @@ export const fileCategories = [
 export const recipientTypes = [
   { id: "all", label: "Todos os associados" },
   { id: "specialty", label: "Por especialidade" },
+  { id: "specific", label: "Usuários específicos" },
 ];
 
 export const specialtyOptions = [
