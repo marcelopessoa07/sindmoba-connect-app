@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -290,26 +289,44 @@ const PendingRegistrationsPage = () => {
     }
     
     try {
-      // Get public URL for the document
+      setSelectedDocument({
+        title: 'Documento de Filiação',
+        file_type: documentId.endsWith('.pdf') ? 'application/pdf' : 'unknown'
+      });
+      
+      // First attempt to get a signed URL
       const { data, error } = await supabase.storage
         .from('registration-documents')
         .createSignedUrl(documentId, 3600); // 1 hour expiration
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        
+        // If failed, try to get public URL as fallback
+        const publicUrlData = supabase.storage
+          .from('registration-documents')
+          .getPublicUrl(documentId);
+        
+        if (publicUrlData.data?.publicUrl) {
+          setDocumentUrl(publicUrlData.data.publicUrl);
+          setIsDocumentPreviewOpen(true);
+          return;
+        }
+        
+        throw error;
+      }
       
-      if (data && data.signedUrl) {
+      if (data?.signedUrl) {
         setDocumentUrl(data.signedUrl);
-        setSelectedDocument({
-          title: 'Documento de Filiação',
-          file_type: documentId.endsWith('.pdf') ? 'application/pdf' : 'unknown'
-        });
         setIsDocumentPreviewOpen(true);
+      } else {
+        throw new Error('Não foi possível gerar URL para o documento');
       }
     } catch (error: any) {
       console.error('Error getting document URL:', error);
       toast({
         title: 'Erro ao carregar documento',
-        description: error.message || 'Não foi possível carregar o documento. Tente novamente.',
+        description: 'Não foi possível carregar o documento. O arquivo pode não estar mais disponível no storage.',
         variant: 'destructive',
       });
     }

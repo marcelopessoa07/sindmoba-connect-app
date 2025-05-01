@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2, AlertCircle, FileX } from 'lucide-react';
+import { Download, Trash2, AlertCircle, FileX, ExternalLink } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useEffect, useState } from 'react';
@@ -32,17 +32,8 @@ const DocumentPreviewDialog = ({
     if (open) {
       setIsPdfLoading(true);
       setPdfError(false);
-
-      // Show toast for missing files
-      if (fileNotAvailable) {
-        toast({
-          title: "Arquivo não disponível",
-          description: "O arquivo não está disponível ou pode ter sido removido.",
-          variant: "destructive",
-        });
-      }
     }
-  }, [open, document, documentUrl, fileNotAvailable, toast]);
+  }, [open, document]);
 
   const handlePdfLoad = () => {
     setIsPdfLoading(false);
@@ -54,16 +45,23 @@ const DocumentPreviewDialog = ({
     
     toast({
       title: "Erro ao carregar PDF",
-      description: "Não foi possível visualizar o arquivo. Tente baixá-lo diretamente.",
+      description: "Não foi possível visualizar o arquivo. Tente baixá-lo diretamente ou abrir em nova janela.",
       variant: "destructive",
     });
+  };
+
+  // Function to open document in new tab
+  const openInNewTab = () => {
+    if (documentUrl) {
+      window.open(documentUrl, '_blank');
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{document?.title}</DialogTitle>
+          <DialogTitle>{document?.title || 'Visualizar Documento'}</DialogTitle>
           {document?.description && (
             <DialogDescription>{document.description}</DialogDescription>
           )}
@@ -72,7 +70,7 @@ const DocumentPreviewDialog = ({
         <div className="mt-4">
           {document && (
             <div className="flex flex-col items-center justify-center">
-              {!fileNotAvailable && document?.file_type?.includes('pdf') ? (
+              {!fileNotAvailable ? (
                 <div className="relative w-full">
                   {isPdfLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100 border rounded">
@@ -82,29 +80,45 @@ const DocumentPreviewDialog = ({
                       </div>
                     </div>
                   )}
-                  <iframe 
-                    src={`${documentUrl}#toolbar=0`}
-                    className="w-full h-[500px] border rounded"
-                    title={document?.title}
-                    onLoad={handlePdfLoad}
-                    onError={handlePdfError}
-                  />
+                  
+                  {document?.file_type?.includes('pdf') ? (
+                    <iframe 
+                      src={`${documentUrl}#toolbar=0`}
+                      className="w-full h-[500px] border rounded"
+                      title={document?.title || 'Documento'}
+                      onLoad={handlePdfLoad}
+                      onError={handlePdfError}
+                    />
+                  ) : (
+                    <div className="p-6 text-center border rounded bg-gray-50">
+                      <p className="mb-4">Este tipo de arquivo não pode ser pré-visualizado.</p>
+                      <div className="flex justify-center space-x-2">
+                        <Button onClick={openInNewTab}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Abrir em Nova Janela
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {pdfError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 border rounded">
                       <div className="text-center p-6">
                         <FileX className="mx-auto h-12 w-12 text-red-500 mb-3" />
-                        <p className="mb-2 font-medium">Erro ao carregar o PDF</p>
-                        <p className="text-sm text-gray-500">
-                          O arquivo PDF não pôde ser visualizado. Tente baixá-lo diretamente.
+                        <p className="mb-2 font-medium">Erro ao carregar o documento</p>
+                        <p className="text-sm text-gray-500 mb-4">
+                          O documento não pôde ser visualizado no momento.
                         </p>
+                        <div className="flex justify-center space-x-2">
+                          <Button onClick={openInNewTab}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Abrir em Nova Janela
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
-              ) : !fileNotAvailable ? (
-                <p className="mb-4 text-center">
-                  Este tipo de arquivo não pode ser pré-visualizado.
-                </p>
               ) : (
                 <div className="text-center p-6 border border-dashed rounded-lg bg-gray-50">
                   <AlertCircle className="mx-auto h-12 w-12 text-amber-500 mb-3" />
@@ -117,7 +131,7 @@ const DocumentPreviewDialog = ({
               
               {!fileNotAvailable && (
                 <Button asChild className="mt-4">
-                  <a href={documentUrl} download={document?.title} target="_blank" rel="noreferrer">
+                  <a href={documentUrl} download={document?.title || 'documento'} target="_blank" rel="noreferrer">
                     <Download className="mr-2 h-4 w-4" />
                     Baixar Arquivo
                   </a>
