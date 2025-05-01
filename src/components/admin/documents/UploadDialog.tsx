@@ -190,35 +190,53 @@ const UploadDialog = ({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
       
       // Handle recipient settings
       if (recipientType === 'all') {
-        await supabase
+        console.log('Adding document recipient: all users');
+        const { error: recipientError } = await supabase
           .from('document_recipients')
           .insert({
             document_id: document.id,
             recipient_type: 'all'
           });
+          
+        if (recipientError) {
+          console.error('Error setting document recipient (all):', recipientError);
+          throw recipientError;
+        }
       } else if (recipientType === 'specialty' && selectedSpecialty) {
         // Make sure selectedSpecialty is one of the allowed values
         const validSpecialty = specialtyOptions.find(opt => opt.id === selectedSpecialty);
         if (validSpecialty) {
-          await supabase
+          console.log('Adding document recipient: specialty', selectedSpecialty);
+          const { error: recipientError } = await supabase
             .from('document_recipients')
             .insert({
               document_id: document.id,
               recipient_type: 'specialty',
               specialty: selectedSpecialty as "pml" | "pol" // Type assertion since we validated above
             });
+            
+          if (recipientError) {
+            console.error('Error setting document recipient (specialty):', recipientError);
+            throw recipientError;
+          }
         }
       } else if (recipientType === 'specific' && selectedUsers.length > 0) {
         // Insert specific users as recipients
+        console.log('Adding document recipients: specific users', selectedUsers.length);
         const recipientsData = selectedUsers.map(user => ({
           document_id: document.id,
           recipient_type: 'specific',
           recipient_id: user.id
         }));
         
-        await supabase
+        const { error: recipientError } = await supabase
           .from('document_recipients')
           .insert(recipientsData);
+          
+        if (recipientError) {
+          console.error('Error setting document recipients (specific):', recipientError);
+          throw recipientError;
+        }
       }
       
       toast({

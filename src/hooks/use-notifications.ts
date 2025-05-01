@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +28,7 @@ export const useNotifications = () => {
         
       const userSpecialty = profile?.specialty || null;
       
+      // Channel for documents specifically shared with this user
       const documentChannel = supabase
         .channel('public:document_recipients')
         .on('postgres_changes', 
@@ -39,6 +39,7 @@ export const useNotifications = () => {
             filter: `recipient_id=eq.${user.id}`
           },
           async (payload) => {
+            console.log('Document recipient notification triggered:', payload);
             // Get document information
             const { data } = await supabase
               .from('documents')
@@ -47,13 +48,14 @@ export const useNotifications = () => {
               .single();
               
             if (data) {
+              console.log('Sending specific user notification for document:', data.title);
               notifyNewDocuments(data.title);
             }
           }
         )
         .subscribe();
         
-      // Monitor for new documents for all users
+      // Channel for documents shared with all users
       const allDocumentsChannel = supabase
         .channel('public:documents:all')
         .on('postgres_changes',
@@ -72,12 +74,43 @@ export const useNotifications = () => {
               .single();
               
             if (data) {
+              console.log('Sending "all users" notification for document:', payload.new.title);
               notifyNewDocuments(payload.new.title);
             }
           }
         )
         .subscribe();
-      
+        
+      // New channel specifically for specialty-based documents
+      const specialtyDocumentsChannel = supabase
+        .channel('public:documents:specialty')
+        .on('postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'document_recipients'
+          },
+          async (payload) => {
+            // Only proceed if this is a specialty-type recipient and matches user's specialty
+            if (
+              payload.new.recipient_type === 'specialty' && 
+              payload.new.specialty === userSpecialty
+            ) {
+              const { data } = await supabase
+                .from('documents')
+                .select('title')
+                .eq('id', payload.new.document_id)
+                .single();
+                
+              if (data) {
+                console.log('Sending specialty notification for document:', data.title);
+                notifyNewDocuments(data.title);
+              }
+            }
+          }
+        )
+        .subscribe();
+
       // Monitor for new news
       const newsChannel = supabase
         .channel('public:news')
@@ -157,6 +190,7 @@ export const useNotifications = () => {
       return () => {
         supabase.removeChannel(documentChannel);
         supabase.removeChannel(allDocumentsChannel);
+        supabase.removeChannel(specialtyDocumentsChannel);
         supabase.removeChannel(newsChannel);
         supabase.removeChannel(eventsChannel);
         clearInterval(intervalId);
