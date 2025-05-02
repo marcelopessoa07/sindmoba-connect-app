@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,7 +30,6 @@ import AdminNewsPage from "./pages/admin/AdminNewsPage";
 import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
 import AdminFAQPage from "./pages/admin/AdminFAQPage";
 import AdminContactsPage from "./pages/admin/AdminContactsPage";
-import AdminLegislationPage from '@/pages/admin/AdminLegislationPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,7 +64,6 @@ const App = () => {
                 <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
                 <Route path="/admin/contacts" element={<AdminContactsPage />} />
                 <Route path="/admin/faq" element={<AdminFAQPage />} />
-                <Route path="/admin/legislation" element={<PrivateRoute><AdminLegislationPage /></PrivateRoute>} />
                 <Route path="/main" element={<MainPage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/news/:id" element={<NewsDetailPage />} />

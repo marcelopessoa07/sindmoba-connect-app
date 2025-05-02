@@ -1,13 +1,8 @@
 
-import { useEffect } from 'react';
+import Contact from '@/components/modules/Contact';
 
 const ContactPage = () => {
-  useEffect(() => {
-    // Redirecionar para o fórum ao acessar esta página
-    window.location.href = 'https://forum.sindmoba.org.br/';
-  }, []);
-
-  return <div className="sindmoba-container">Redirecionando para o fórum...</div>;
+  return <Contact />;
 };
 
 export default ContactPage;
