@@ -12,7 +12,8 @@ import {
   FileText,
   Newspaper,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  BookText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
