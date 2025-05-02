@@ -66,6 +66,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Eventos', path: '/admin/events', icon: Calendar },
     { title: 'Notícias', path: '/admin/news', icon: Newspaper },
     { title: 'Gerenciamento de Contatos', path: '/admin/contacts', icon: Mail },
+    { title: 'Legislação e Direitos', path: '/admin/legislation', icon: BookText },
     { title: 'FAQ', path: '/admin/faq', icon: HelpCircle },
   ];
 

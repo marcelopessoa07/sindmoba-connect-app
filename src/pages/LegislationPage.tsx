@@ -25,6 +25,7 @@ const LegislationPage = () => {
     const fetchLegislation = async () => {
       try {
         setLoading(true);
+        // Use the correct table name with type casting
         const { data, error } = await supabase
           .from('legislation_items')
           .select('*')
@@ -34,10 +35,10 @@ const LegislationPage = () => {
           throw error;
         }
 
-        setLegislationItems(data || []);
+        setLegislationItems(data as LegislationItem[]);
         
         // Group items by category
-        const grouped = data?.reduce((acc: GroupedLegislation, item) => {
+        const grouped = (data as LegislationItem[])?.reduce((acc: GroupedLegislation, item) => {
           if (!acc[item.category]) {
             acc[item.category] = [];
           }

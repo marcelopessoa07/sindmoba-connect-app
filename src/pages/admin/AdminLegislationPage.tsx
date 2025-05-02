@@ -107,7 +107,7 @@ const AdminLegislationPage = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setLegislationItems(data || []);
+      setLegislationItems(data as LegislationItem[] || []);
     } catch (error) {
       console.error('Error fetching legislation items:', error);
       toast({
@@ -128,7 +128,7 @@ const AdminLegislationPage = () => {
         .order('name', { ascending: true });
 
       if (error) throw error;
-      setCategories(data || []);
+      setCategories(data as CategoryParams[] || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast({
