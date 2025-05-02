@@ -1,3 +1,4 @@
+
 import { NavLink } from 'react-router-dom';
 import { 
   Calendar, 
@@ -21,6 +22,14 @@ interface MainMenuProps {
   closeMenu: () => void;
 }
 
+// Define the menu item interface with the external property
+interface MenuItem {
+  title: string;
+  path: string;
+  icon: React.ElementType;
+  external?: boolean;
+}
+
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
   const { user, profile, signOut } = useAuth();
   const [profileData, setProfileData] = useState({
@@ -40,7 +49,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   }, [profile]);
   
   // Regular user menu items
-  const memberMenuItems = [
+  const memberMenuItems: MenuItem[] = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
@@ -50,7 +59,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   ];
 
   // Admin menu items
-  const adminMenuItems = [
+  const adminMenuItems: MenuItem[] = [
     { title: 'Gerenciar Membros', path: '/admin', icon: Users },
     { title: 'Documentos', path: '/admin/documents', icon: FileText },
     { title: 'Eventos', path: '/admin/events', icon: Calendar },
