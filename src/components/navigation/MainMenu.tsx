@@ -11,7 +11,8 @@ import {
   Users,
   FileText,
   Newspaper,
-  HelpCircle
+  HelpCircle,
+  Forum
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -46,7 +47,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
     { title: 'Perguntas Frequentes', path: '/faq', icon: HelpCircle },
-    { title: 'Contato e Atendimento', path: '/contact', icon: Mail }
+    { title: 'Fórum', path: 'https://forum.sindmoba.org.br/', icon: Forum, external: true }
   ];
 
   // Admin menu items
@@ -144,21 +145,35 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
           </NavLink>
         )}
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center px-4 py-3 ${
-                isActive
-                  ? 'bg-sindmoba-light text-sindmoba-primary font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`
-            }
-            onClick={closeMenu}
-          >
-            <item.icon className="mr-3 h-5 w-5" />
-            <span>{item.title}</span>
-          </NavLink>
+          item.external ? (
+            <a
+              key={item.path}
+              href={item.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100"
+              onClick={closeMenu}
+            >
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.title}</span>
+            </a>
+          ) : (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center px-4 py-3 ${
+                  isActive
+                    ? 'bg-sindmoba-light text-sindmoba-primary font-semibold'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`
+              }
+              onClick={closeMenu}
+            >
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.title}</span>
+            </NavLink>
+          )
         ))}
       </div>
       

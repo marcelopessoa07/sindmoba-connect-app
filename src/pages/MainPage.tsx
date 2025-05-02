@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Mail, Users, Newspaper, FileText, HelpCircle, BellDot } from 'lucide-react';
+import { Calendar, File, Book, List, Forum, Users, Newspaper, FileText, HelpCircle, BellDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,11 +61,11 @@ const MainPage = () => {
       description: 'Respostas para as dúvidas mais comuns'
     },
     { 
-      title: 'Contato e Atendimento', 
-      path: '/contact', 
-      icon: Mail,
+      title: 'Fórum', 
+      path: 'https://forum.sindmoba.org.br/', 
+      icon: Forum,
       color: '#2980b9',
-      description: 'Canais de comunicação direta com o SINDMOBA'
+      description: 'Acesse nosso fórum de discussão'
     }
   ];
 
