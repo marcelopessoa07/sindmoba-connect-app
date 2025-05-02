@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, Forum, Users, Newspaper, FileText, HelpCircle, BellDot } from 'lucide-react';
+import { Calendar, File, Book, List, MessageSquare, Users, Newspaper, FileText, HelpCircle, BellDot, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,14 +57,14 @@ const MainPage = () => {
     { 
       title: 'Perguntas Frequentes', 
       path: '/faq', 
-      icon: List,
+      icon: HelpCircle,
       color: '#2c3e50',
       description: 'Respostas para as dúvidas mais comuns'
     },
     { 
       title: 'Fórum', 
       path: 'https://forum.sindmoba.org.br/', 
-      icon: Forum,
+      icon: MessageSquare,
       color: '#2980b9',
       description: 'Acesse nosso fórum de discussão'
     }

@@ -1,4 +1,3 @@
-
 import { NavLink } from 'react-router-dom';
 import { 
   Calendar, 
@@ -12,7 +11,7 @@ import {
   FileText,
   Newspaper,
   HelpCircle,
-  Forum
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -47,7 +46,7 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
     { title: 'Perguntas Frequentes', path: '/faq', icon: HelpCircle },
-    { title: 'Fórum', path: 'https://forum.sindmoba.org.br/', icon: Forum, external: true }
+    { title: 'Fórum', path: 'https://forum.sindmoba.org.br/', icon: MessageSquare, external: true }
   ];
 
   // Admin menu items
