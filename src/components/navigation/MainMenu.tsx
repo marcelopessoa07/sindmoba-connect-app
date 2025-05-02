@@ -11,7 +11,9 @@ import {
   Users,
   FileText,
   Newspaper,
-  HelpCircle
+  HelpCircle,
+  MessageSquare,
+  BookText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -19,6 +21,14 @@ import { toast } from '@/hooks/use-toast';
 
 interface MainMenuProps {
   closeMenu: () => void;
+}
+
+// Define the menu item interface with the external property
+interface MenuItem {
+  title: string;
+  path: string;
+  icon: React.ElementType;
+  external?: boolean;
 }
 
 const MainMenu = ({ closeMenu }: MainMenuProps) => {
@@ -40,22 +50,23 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
   }, [profile]);
   
   // Regular user menu items
-  const memberMenuItems = [
+  const memberMenuItems: MenuItem[] = [
     { title: 'Últimas Notícias', path: '/news', icon: List },
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
     { title: 'Perguntas Frequentes', path: '/faq', icon: HelpCircle },
-    { title: 'Contato e Atendimento', path: '/contact', icon: Mail }
+    { title: 'Fórum', path: 'https://forum.sindmoba.org.br/', icon: MessageSquare, external: true }
   ];
 
   // Admin menu items
-  const adminMenuItems = [
+  const adminMenuItems: MenuItem[] = [
     { title: 'Gerenciar Membros', path: '/admin', icon: Users },
     { title: 'Documentos', path: '/admin/documents', icon: FileText },
     { title: 'Eventos', path: '/admin/events', icon: Calendar },
     { title: 'Notícias', path: '/admin/news', icon: Newspaper },
     { title: 'Gerenciamento de Contatos', path: '/admin/contacts', icon: Mail },
+    { title: 'Legislação e Direitos', path: '/admin/legislation', icon: BookText },
     { title: 'FAQ', path: '/admin/faq', icon: HelpCircle },
   ];
 
@@ -144,21 +155,35 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
           </NavLink>
         )}
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center px-4 py-3 ${
-                isActive
-                  ? 'bg-sindmoba-light text-sindmoba-primary font-semibold'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`
-            }
-            onClick={closeMenu}
-          >
-            <item.icon className="mr-3 h-5 w-5" />
-            <span>{item.title}</span>
-          </NavLink>
+          item.external ? (
+            <a
+              key={item.path}
+              href={item.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100"
+              onClick={closeMenu}
+            >
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.title}</span>
+            </a>
+          ) : (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center px-4 py-3 ${
+                  isActive
+                    ? 'bg-sindmoba-light text-sindmoba-primary font-semibold'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`
+              }
+              onClick={closeMenu}
+            >
+              <item.icon className="mr-3 h-5 w-5" />
+              <span>{item.title}</span>
+            </NavLink>
+          )
         ))}
       </div>
       
