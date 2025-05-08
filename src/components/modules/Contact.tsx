@@ -1,5 +1,5 @@
 
-import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Instagram, Twitter, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Contact = () => {
@@ -23,6 +23,18 @@ const Contact = () => {
     window.location.href = 'mailto:juridico@sindmoba.org.br?subject=Solicitação%20de%20Apoio%20Jurídico&body=Olá%20Departamento%20Jurídico%20do%20SINDMOBA,%20gostaria%20de%20solicitar%20apoio%20jurídico%20para%20o%20seguinte%20assunto:%20';
   };
 
+  const handleInstagramClick = () => {
+    window.open('https://www.instagram.com/sindmoba', '_blank');
+  };
+
+  const handleTwitterClick = () => {
+    window.open('https://twitter.com/sindmoba', '_blank');
+  };
+
+  const handleWebsiteClick = () => {
+    window.open('https://www.sindmoba.org.br', '_blank');
+  };
+
   return (
     <div className="sindmoba-container">
       <h2 className="mb-6">Contato e Atendimento</h2>
@@ -39,12 +51,6 @@ const Contact = () => {
               <div>
                 <p className="font-medium">Telefone</p>
                 <p className="text-gray-600">(71) 3333-2222</p>
-                <button 
-                  onClick={handlePhoneClick}
-                  className="mt-1 text-sm text-sindmoba-primary hover:underline"
-                >
-                  Ligar agora
-                </button>
               </div>
             </div>
             
@@ -55,12 +61,6 @@ const Contact = () => {
               <div>
                 <p className="font-medium">E-mail</p>
                 <p className="text-gray-600">contato@sindmoba.org.br</p>
-                <button 
-                  onClick={handleEmailClick}
-                  className="mt-1 text-sm text-sindmoba-primary hover:underline"
-                >
-                  Enviar e-mail
-                </button>
               </div>
             </div>
             
@@ -75,14 +75,6 @@ const Contact = () => {
                   Torre Norte, Sala 1105<br />
                   Salvador - BA, 41820-020
                 </p>
-                <a 
-                  href="https://maps.google.com/?q=Av.+Tancredo+Neves,+1632,+Salvador+-+BA,+41820-020"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 text-sm text-sindmoba-primary hover:underline"
-                >
-                  Ver no mapa
-                </a>
               </div>
             </div>
             
@@ -120,11 +112,24 @@ const Contact = () => {
             </Button>
             
             <Button 
-              onClick={handleEmailClick}
-              variant="outline"
-              className="w-full border-sindmoba-primary text-sindmoba-primary hover:bg-sindmoba-light"
+              onClick={handleInstagramClick}
+              className="w-full bg-[#E1306C] hover:bg-[#C13584] text-white"
             >
-              Enviar e-mail
+              <Instagram className="mr-2" /> Instagram
+            </Button>
+            
+            <Button 
+              onClick={handleTwitterClick}
+              className="w-full bg-[#1DA1F2] hover:bg-[#1A91DA] text-white"
+            >
+              <Twitter className="mr-2" /> X (Twitter)
+            </Button>
+            
+            <Button 
+              onClick={handleWebsiteClick}
+              className="w-full bg-sindmoba-primary hover:bg-sindmoba-secondary"
+            >
+              <Globe className="mr-2" /> Site SINDMOBA
             </Button>
           </div>
         </div>
