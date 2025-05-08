@@ -1,7 +1,20 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, File, Book, List, MessageSquare, Users, Newspaper, FileText, HelpCircle, BellDot, Mail } from 'lucide-react';
+import { 
+  Calendar, 
+  File, 
+  Book, 
+  List, 
+  MessageSquare, 
+  Users, 
+  Newspaper, 
+  FileText, 
+  HelpCircle, 
+  BellDot, 
+  Mail,
+  School,
+  Library
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,6 +80,20 @@ const MainPage = () => {
       icon: MessageSquare,
       color: '#2980b9',
       description: 'Acesse nosso fórum de discussão'
+    },
+    { 
+      title: 'Ensino', 
+      path: '/education', 
+      icon: School,
+      color: '#e74c3c',
+      description: 'Cursos e materiais educativos para peritos'
+    },
+    { 
+      title: 'Biblioteca', 
+      path: '/library', 
+      icon: Library,
+      color: '#16a085',
+      description: 'Acervo bibliográfico especializado'
     }
   ];
 
@@ -112,6 +139,20 @@ const MainPage = () => {
       icon: HelpCircle,
       color: '#2c3e50',
       description: 'Gerencie as perguntas frequentes'
+    },
+    { 
+      title: 'Ensino', 
+      path: '/admin/education', 
+      icon: School,
+      color: '#e74c3c',
+      description: 'Gerencie cursos e materiais educativos'
+    },
+    { 
+      title: 'Biblioteca', 
+      path: '/admin/library', 
+      icon: Library,
+      color: '#16a085',
+      description: 'Gerencie o acervo bibliográfico'
     }
   ];
 

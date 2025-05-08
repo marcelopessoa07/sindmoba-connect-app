@@ -13,7 +13,9 @@ import {
   Newspaper,
   HelpCircle,
   MessageSquare,
-  BookText
+  BookText,
+  School,
+  Library
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -55,6 +57,8 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Agenda e Eventos', path: '/events', icon: Calendar },
     { title: 'Documentos e Arquivos', path: '/documents', icon: File },
     { title: 'Legislação e Direitos', path: '/legislation', icon: Book },
+    { title: 'Ensino', path: '/education', icon: School },
+    { title: 'Biblioteca', path: '/library', icon: Library },
     { title: 'Perguntas Frequentes', path: '/faq', icon: HelpCircle },
     { title: 'Fórum', path: 'https://forum.sindmoba.org.br/', icon: MessageSquare, external: true }
   ];
@@ -65,6 +69,8 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Documentos', path: '/admin/documents', icon: FileText },
     { title: 'Eventos', path: '/admin/events', icon: Calendar },
     { title: 'Notícias', path: '/admin/news', icon: Newspaper },
+    { title: 'Ensino', path: '/admin/education', icon: School },
+    { title: 'Biblioteca', path: '/admin/library', icon: Library },
     { title: 'Gerenciamento de Contatos', path: '/admin/contacts', icon: Mail },
     { title: 'Legislação e Direitos', path: '/admin/legislation', icon: BookText },
     { title: 'FAQ', path: '/admin/faq', icon: HelpCircle },

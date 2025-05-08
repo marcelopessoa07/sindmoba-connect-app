@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,6 +31,10 @@ import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
 import AdminFAQPage from "./pages/admin/AdminFAQPage";
 import AdminContactsPage from "./pages/admin/AdminContactsPage";
 import AdminLegislationPage from '@/pages/admin/AdminLegislationPage';
+import EducationPage from './pages/EducationPage';
+import LibraryPage from './pages/LibraryPage';
+import AdminEducationPage from './pages/admin/AdminEducationPage';
+import AdminLibraryPage from './pages/admin/AdminLibraryPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,12 +70,16 @@ const App = () => {
                 <Route path="/admin/contacts" element={<AdminContactsPage />} />
                 <Route path="/admin/faq" element={<AdminFAQPage />} />
                 <Route path="/admin/legislation" element={<PrivateRoute><AdminLegislationPage /></PrivateRoute>} />
+                <Route path="/admin/education" element={<PrivateRoute><AdminEducationPage /></PrivateRoute>} />
+                <Route path="/admin/library" element={<PrivateRoute><AdminLibraryPage /></PrivateRoute>} />
                 <Route path="/main" element={<MainPage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/news/:id" element={<NewsDetailPage />} />
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/legislation" element={<LegislationPage />} />
+                <Route path="/education" element={<EducationPage />} />
+                <Route path="/library" element={<LibraryPage />} />
                 <Route path="/faq" element={<FAQPage />} />
                 <Route path="/membership" element={<MembershipPage />} />
                 <Route path="/file-submission" element={<FileSubmissionPage />} />
