@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -423,6 +422,18 @@ const AdminLegislationPage = () => {
     return categories.filter(cat => cat.category_type === 'document');
   };
   
+  const getLibraryTypeCategories = () => {
+    return categories.filter(cat => cat.category_type === 'library_type');
+  };
+  
+  const getLibraryCategoryCategories = () => {
+    return categories.filter(cat => cat.category_type === 'library_category');
+  };
+  
+  const getEducationTypeCategories = () => {
+    return categories.filter(cat => cat.category_type === 'education_type');
+  };
+  
   const CategoryTable = ({ categoryType, title, items }: { categoryType: string, title: string, items: CategoryParams[] }) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -487,8 +498,8 @@ const AdminLegislationPage = () => {
   );
 
   return (
-    <AdminLayout title="Gerenciar Legislação e Categorias">
-      <Tabs defaultValue="legislation" className="space-y-4">
+    <AdminLayout title="Gerenciar Categorias">
+      <Tabs defaultValue="categories" className="space-y-4">
         <TabsList>
           <TabsTrigger value="legislation">Legislação e Direitos</TabsTrigger>
           <TabsTrigger value="categories">Categorias</TabsTrigger>
@@ -574,7 +585,7 @@ const AdminLegislationPage = () => {
         <TabsContent value="categories">
           <div className="mb-4">
             <p className="text-gray-600 mb-4">
-              Configure as categorias disponíveis para classificar itens de legislação, eventos, notícias e documentos.
+              Configure as categorias disponíveis para classificar itens de legislação, eventos, notícias, biblioteca, ensino e documentos.
             </p>
             
             <div className="grid gap-6 md:grid-cols-2">
@@ -583,6 +594,26 @@ const AdminLegislationPage = () => {
                 title="Categorias de Legislação" 
                 items={getLegislationCategories()} 
               />
+              
+              {/* New category tables for Biblioteca (Library) */}
+              <CategoryTable 
+                categoryType="library_type" 
+                title="Tipos de Biblioteca" 
+                items={getLibraryTypeCategories()} 
+              />
+              <CategoryTable 
+                categoryType="library_category" 
+                title="Categorias de Biblioteca" 
+                items={getLibraryCategoryCategories()} 
+              />
+              
+              {/* New category table for Ensino (Education) */}
+              <CategoryTable 
+                categoryType="education_type" 
+                title="Tipos de Ensino" 
+                items={getEducationTypeCategories()} 
+              />
+              
               <CategoryTable 
                 categoryType="event" 
                 title="Tipos de Eventos" 
@@ -785,6 +816,10 @@ const AdminLegislationPage = () => {
                     <SelectItem value="event">Evento</SelectItem>
                     <SelectItem value="news">Notícia</SelectItem>
                     <SelectItem value="document">Documento</SelectItem>
+                    {/* Add the new category types */}
+                    <SelectItem value="library_type">Tipo de Biblioteca</SelectItem>
+                    <SelectItem value="library_category">Categoria de Biblioteca</SelectItem>
+                    <SelectItem value="education_type">Tipo de Ensino</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -840,6 +875,10 @@ const AdminLegislationPage = () => {
                     <SelectItem value="event">Evento</SelectItem>
                     <SelectItem value="news">Notícia</SelectItem>
                     <SelectItem value="document">Documento</SelectItem>
+                    {/* Add the new category types */}
+                    <SelectItem value="library_type">Tipo de Biblioteca</SelectItem>
+                    <SelectItem value="library_category">Categoria de Biblioteca</SelectItem>
+                    <SelectItem value="education_type">Tipo de Ensino</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
