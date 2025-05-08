@@ -12,7 +12,8 @@ import {
   Mail,
   BookText,
   School,
-  Library
+  Library,
+  ListFilter
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/hooks/use-toast';
@@ -92,8 +93,8 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { title: 'Notícias', icon: Newspaper, path: '/admin/news' },
     { title: 'Ensino', icon: School, path: '/admin/education' },
     { title: 'Biblioteca', icon: Library, path: '/admin/library' },
+    { title: 'Categorias', icon: ListFilter, path: '/admin/legislation' },
     { title: 'Gerenciamento de Contatos', icon: Mail, path: '/admin/contacts' },
-    { title: 'Legislação e Direitos', icon: BookText, path: '/admin/legislation' },
     { title: 'FAQ', icon: HelpCircle, path: '/admin/faq' },
   ];
 

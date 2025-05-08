@@ -15,7 +15,8 @@ import {
   MessageSquare,
   BookText,
   School,
-  Library
+  Library,
+  ListFilter
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
@@ -71,8 +72,8 @@ const MainMenu = ({ closeMenu }: MainMenuProps) => {
     { title: 'Notícias', path: '/admin/news', icon: Newspaper },
     { title: 'Ensino', path: '/admin/education', icon: School },
     { title: 'Biblioteca', path: '/admin/library', icon: Library },
+    { title: 'Categorias', path: '/admin/legislation', icon: ListFilter },
     { title: 'Gerenciamento de Contatos', path: '/admin/contacts', icon: Mail },
-    { title: 'Legislação e Direitos', path: '/admin/legislation', icon: BookText },
     { title: 'FAQ', path: '/admin/faq', icon: HelpCircle },
   ];
 

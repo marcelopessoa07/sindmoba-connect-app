@@ -36,23 +36,6 @@ const EducationPage = () => {
       link: "https://exemplo.com/videoaulas"
     }
   ];
-  
-  const events = [
-    {
-      title: "Workshop: Novas Técnicas Forenses",
-      date: "15/06/2025",
-      location: "Salvador, BA",
-      description: "Apresentação de novas tecnologias e técnicas aplicadas à perícia.",
-      link: "https://exemplo.com/workshop"
-    },
-    {
-      title: "Congresso Nacional de Perícia Médica",
-      date: "10/08/2025 - 12/08/2025",
-      location: "Brasília, DF",
-      description: "Maior evento nacional sobre perícia médica, com palestrantes internacionais.",
-      link: "https://exemplo.com/congresso"
-    }
-  ];
 
   return (
     <div className="sindmoba-container">
@@ -60,14 +43,13 @@ const EducationPage = () => {
       
       <p className="mb-8 text-gray-700">
         O SINDMOBA disponibiliza recursos educacionais para o aperfeiçoamento profissional de seus associados. 
-        Confira abaixo os cursos, materiais didáticos e eventos educacionais disponíveis.
+        Confira abaixo os cursos e materiais didáticos disponíveis.
       </p>
       
       <Tabs defaultValue="cursos" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-3 mb-6">
+        <TabsList className="w-full grid grid-cols-2 mb-6">
           <TabsTrigger value="cursos">Cursos</TabsTrigger>
           <TabsTrigger value="materiais">Materiais Didáticos</TabsTrigger>
-          <TabsTrigger value="eventos">Eventos Educacionais</TabsTrigger>
         </TabsList>
         
         <TabsContent value="cursos" className="space-y-4">
@@ -109,29 +91,6 @@ const EducationPage = () => {
                 </div>
                 <p className="text-sm text-gray-500 mt-1">Tipo: {material.type}</p>
                 <p className="mt-2">{material.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-        
-        <TabsContent value="eventos" className="space-y-4">
-          {events.map((event, index) => (
-            <Card key={index}>
-              <CardContent className="p-4">
-                <div className="flex justify-between">
-                  <h3 className="text-lg font-semibold">{event.title}</h3>
-                  <a 
-                    href={event.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sindmoba-primary hover:text-sindmoba-secondary"
-                  >
-                    <ExternalLink size={20} />
-                  </a>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Data: {event.date}</p>
-                <p className="text-sm text-gray-500">Local: {event.location}</p>
-                <p className="mt-2">{event.description}</p>
               </CardContent>
             </Card>
           ))}

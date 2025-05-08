@@ -24,13 +24,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { School, Pencil, Trash2, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+interface ItemDetails {
+  instructor?: string;
+  format?: string;
+  date?: string;
+  location?: string;
+  description: string;
+}
+
+interface EducationItem {
+  id: string;
+  title: string;
+  type: 'curso' | 'material';
+  link: string;
+  details: ItemDetails;
+}
+
 const AdminEducationPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState<any>(null);
-  const [formType, setFormType] = useState('curso');
+  const [currentItem, setCurrentItem] = useState<EducationItem | null>(null);
+  const [formType, setFormType] = useState<'curso' | 'material'>('curso');
   
   // Mock data - in a real app, this would come from your database
-  const [items, setItems] = useState([
+  const [items, setItems] = useState<EducationItem[]>([
     {
       id: '1',
       title: 'Introdução à Perícia Médico-Legal',
@@ -50,27 +66,16 @@ const AdminEducationPage = () => {
         format: 'PDF',
         description: 'Documento com diretrizes e procedimentos padrão para perícias.'
       }
-    },
-    {
-      id: '3',
-      title: 'Workshop: Novas Técnicas Forenses',
-      type: 'evento',
-      link: 'https://exemplo.com/workshop',
-      details: {
-        date: '2025-06-15',
-        location: 'Salvador, BA',
-        description: 'Apresentação de novas tecnologias e técnicas aplicadas à perícia.'
-      }
     }
   ]);
   
-  const openAddDialog = (type: string) => {
+  const openAddDialog = (type: 'curso' | 'material') => {
     setFormType(type);
     setCurrentItem(null);
     setIsDialogOpen(true);
   };
   
-  const openEditDialog = (item: any) => {
+  const openEditDialog = (item: EducationItem) => {
     setFormType(item.type);
     setCurrentItem(item);
     setIsDialogOpen(true);
@@ -91,7 +96,8 @@ const AdminEducationPage = () => {
     
     // In a real app, you would send this data to your backend
     const formData = new FormData(e.target as HTMLFormElement);
-    const itemData = {
+    
+    const newItem: EducationItem = {
       id: currentItem ? currentItem.id : Date.now().toString(),
       title: formData.get('title') as string,
       type: formType,
@@ -103,22 +109,18 @@ const AdminEducationPage = () => {
         ...(formType === 'material' && { 
           format: formData.get('format') as string 
         }),
-        ...(formType === 'evento' && { 
-          date: formData.get('date') as string,
-          location: formData.get('location') as string 
-        }),
         description: formData.get('description') as string
       }
     };
     
     if (currentItem) {
-      setItems(items.map(item => item.id === currentItem.id ? itemData : item));
+      setItems(items.map(item => item.id === currentItem.id ? newItem : item));
       toast({
         title: "Item atualizado",
         description: "As alterações foram salvas com sucesso."
       });
     } else {
-      setItems([...items, itemData]);
+      setItems([...items, newItem]);
       toast({
         title: "Item adicionado",
         description: "O novo item foi adicionado com sucesso."
@@ -133,7 +135,7 @@ const AdminEducationPage = () => {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <p className="text-gray-600">
-            Gerencie cursos, materiais educativos e eventos de capacitação para os associados.
+            Gerencie cursos e materiais educativos para os associados.
           </p>
         </div>
         <div className="flex gap-2">
@@ -144,10 +146,6 @@ const AdminEducationPage = () => {
           <Button onClick={() => openAddDialog('material')} variant="outline" className="gap-1">
             <Plus size={16} />
             Novo Material
-          </Button>
-          <Button onClick={() => openAddDialog('evento')} variant="outline" className="gap-1">
-            <Plus size={16} />
-            Novo Evento
           </Button>
         </div>
       </div>
@@ -205,8 +203,7 @@ const AdminEducationPage = () => {
           <DialogHeader>
             <DialogTitle>
               {currentItem ? 'Editar' : 'Adicionar'} {
-                formType === 'curso' ? 'Curso' : 
-                formType === 'material' ? 'Material Educativo' : 'Evento Educacional'
+                formType === 'curso' ? 'Curso' : 'Material Educativo'
               }
             </DialogTitle>
             <DialogDescription>
@@ -273,34 +270,6 @@ const AdminEducationPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-              
-              {formType === 'evento' && (
-                <>
-                  <div className="grid gap-2">
-                    <label htmlFor="date" className="text-sm font-medium">
-                      Data
-                    </label>
-                    <Input 
-                      id="date" 
-                      name="date" 
-                      type="date" 
-                      defaultValue={currentItem?.details?.date || ''}
-                      required 
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor="location" className="text-sm font-medium">
-                      Local
-                    </label>
-                    <Input 
-                      id="location" 
-                      name="location" 
-                      defaultValue={currentItem?.details?.location || ''}
-                      required 
-                    />
-                  </div>
-                </>
               )}
               
               <div className="grid gap-2">
