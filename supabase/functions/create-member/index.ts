@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireAdmin } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,9 @@ serve(async (req) => {
   }
   
   try {
+    const denied = await requireAdmin(req, corsHeaders)
+    if (denied) return denied
+
     const supabaseClient = createClient(
       // Supabase API URL - env var exported by default.
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -49,7 +53,7 @@ serve(async (req) => {
     }
     
     // Generate a random password
-    const password = Math.random().toString(36).slice(2) + Math.random().toString(36).toUpperCase().slice(2)
+    const password = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, '0')).join('')
     
     // Create the user in auth
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({

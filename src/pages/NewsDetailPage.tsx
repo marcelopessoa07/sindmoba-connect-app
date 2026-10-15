@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
+import DOMPurify from 'dompurify';
 
 interface NewsDetail {
   id: string;
@@ -126,7 +127,7 @@ const NewsDetailPage = () => {
           
           <div 
             className="prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: newsItem.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(newsItem.content) }}
           />
         </div>
       </article>

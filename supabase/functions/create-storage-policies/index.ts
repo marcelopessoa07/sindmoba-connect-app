@@ -1,6 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.43.2'
+import { requireAdmin } from '../_shared/auth.ts'
 
 // Configure CORS headers
 const corsHeaders = {
@@ -25,6 +26,9 @@ serve(async (req: Request) => {
   if (corsResponse) return corsResponse
 
   try {
+    const denied = await requireAdmin(req, corsHeaders)
+    if (denied) return denied
+
     // Extract authorization headers
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {

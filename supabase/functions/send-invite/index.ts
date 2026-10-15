@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAdmin } from '../_shared/auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,9 @@ serve(async (req) => {
   }
 
   try {
+    const denied = await requireAdmin(req, corsHeaders)
+    if (denied) return denied
+
     console.log('Received request to send invite email');
     
     // Get request data
